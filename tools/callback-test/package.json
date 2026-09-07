@@ -1,13 +1,13 @@
 {
   "name": "earlymeeting-local-callback-probe",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "Local callback diagnostics and one manual test card; no work-content persistence or card updates",
+  "description": "Local callback diagnostics and owner-controlled rows on one test-group card",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "test": "node probe.cjs --self-test && node --test probe.test.cjs send.test.cjs",
+    "test": "node probe.cjs --self-test && node --test probe.test.cjs send.test.cjs meeting.test.cjs",
     "start": "node probe.cjs"
   },
   "dependencies": {

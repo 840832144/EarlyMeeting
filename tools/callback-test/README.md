@@ -1,5 +1,7 @@
 # 本机卡片回调联调
 
+当前新版本人行填写请使用 **START_MEETING.cmd**，见 [一键晨会操作说明](MEETING.md)。User 已批准指定测试群内保存本人行并更新同一卡片，当前由 User 直接验收。以下内容保留为原诊断模式说明；诊断入口与原模板发送入口继续可用。
+
 正式任务为 AI-Workspace [TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)。范围以 [当前方向](../../docs/CURRENT_DIRECTION.md) 为准。此工具保留现有应用与卡片模板，验证长连接和真实卡片回调。User 追加要求的一键发送仅用于手动补发本轮一张测试卡片。
 
 ## 在当前 Windows 电脑操作

@@ -1,7 +1,8 @@
-param([ValidateSet('Check','Stop')][string]$Action = 'Check')
+param([ValidateSet('Check','Stop')][string]$Action = 'Check', [ValidateSet('Probe','Meeting')][string]$Mode = 'Probe')
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding
 $localDir = Join-Path $PSScriptRoot '.local'
+if ($Mode -eq 'Meeting') { $localDir = Join-Path $localDir 'meeting' }
 $sessionPath = Join-Path $localDir 'session.json'
 try {
     if (-not (Test-Path -LiteralPath $sessionPath)) { Write-Host '[NOT_STARTED]'; exit 0 }
@@ -10,6 +11,7 @@ try {
     $nodePid = [int]$session.pid
     $process = Get-CimInstance Win32_Process -Filter "ProcessId=$nodePid"
     $entry = Join-Path $PSScriptRoot 'probe.cjs'
+    if ($Mode -eq 'Meeting') { $entry = Join-Path $PSScriptRoot 'meeting.cjs' }
     $owned = $process -and $process.Name -eq 'node.exe' -and
         $process.CommandLine.Contains($entry) -and -not $session.stopped
     if ($Action -eq 'Check') {
@@ -21,7 +23,7 @@ try {
     if (-not $owned) { Write-Host '[NOT_RUNNING]'; exit 0 }
     @{runId=$runGuid.ToString()} | ConvertTo-Json -Compress |
         Set-Content -LiteralPath (Join-Path $localDir 'stop.json') -Encoding ASCII
-    for ($i=0; $i -lt 30; $i++) {
+    for ($i=0; $i -lt 75; $i++) {
         Start-Sleep -Milliseconds 200
         $current = Get-CimInstance Win32_Process -Filter "ProcessId=$nodePid"
         if (-not $current -or $current.CreationDate -ne $process.CreationDate) {

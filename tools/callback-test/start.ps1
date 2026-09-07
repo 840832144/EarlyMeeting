@@ -1,4 +1,5 @@
-﻿$ErrorActionPreference = 'Stop'
+﻿param([ValidateSet('Probe','Meeting')][string]$Mode = 'Probe')
+$ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding
 $OutputEncoding = [Console]::OutputEncoding
 Set-Location -LiteralPath $PSScriptRoot
@@ -9,7 +10,8 @@ $names = @('EARLYMEETING_APP_ID','EARLYMEETING_APP_SECRET','EARLYMEETING_TEST_CH
 $old = @{}
 foreach ($name in $names) { $old[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 try {
-    Write-Host 'EarlyMeeting 本机回调测试（不保存、不更新、不定时发送）'
+    if ($Mode -eq 'Meeting') { Write-Host 'EarlyMeeting 本人行晨会（指定测试群，同卡保存，定时关闭）' }
+    else { Write-Host 'EarlyMeeting 本机回调测试（不保存、不更新、不定时发送）' }
     Write-Host '请关闭本应用的其他回调测试进程，只运行一份。'
     $node = Get-Command node.exe -ErrorAction SilentlyContinue
     $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
@@ -25,8 +27,10 @@ try {
         throw 'PRECHECK_STOP'
     }
     Write-Host ('[NODE_OK] ' + $version)
-    & $node.Source (Join-Path $PSScriptRoot 'probe.cjs') --self-test
-    if ($LASTEXITCODE -ne 0) { throw 'SELF_TEST_FAILED' }
+    if ($Mode -eq 'Probe') {
+        & $node.Source (Join-Path $PSScriptRoot 'probe.cjs') --self-test
+        if ($LASTEXITCODE -ne 0) { throw 'SELF_TEST_FAILED' }
+    }
     $pkgPath = Join-Path $PSScriptRoot 'node_modules\@larksuiteoapi\node-sdk\package.json'
     $install = $true
     if (Test-Path -LiteralPath $pkgPath) {
@@ -84,7 +88,28 @@ try {
         throw 'PRECHECK_STOP'
     }
     Write-Host '只使用虚构测试文字。保持窗口打开；结束时按 Ctrl+C。'
-    & $node.Source (Join-Path $PSScriptRoot 'probe.cjs')
+    $entryName = 'probe.cjs'
+    if ($Mode -eq 'Meeting') {
+        $dataDir = Join-Path $PSScriptRoot '.local\meeting'
+        $newDataDir = -not (Test-Path -LiteralPath $dataDir)
+        if ($newDataDir) { New-Item -ItemType Directory -Path $dataDir | Out-Null }
+        $userSid = [Security.Principal.WindowsIdentity]::GetCurrent().User
+        $systemSid = New-Object Security.Principal.SecurityIdentifier('S-1-5-18')
+        $dataAcl = New-Object Security.AccessControl.DirectorySecurity
+        $dataAcl.SetAccessRuleProtection($true, $false)
+        foreach ($sid in @($userSid,$systemSid)) {
+            $rule = New-Object Security.AccessControl.FileSystemAccessRule($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow')
+            $dataAcl.AddAccessRule($rule)
+        }
+        if ($newDataDir) { Set-Acl -LiteralPath $dataDir -AclObject $dataAcl }
+        $verifiedAcl = Get-Acl -LiteralPath $dataDir
+        $allowedSids = @($userSid.Value,$systemSid.Value)
+        $unsafe = @($verifiedAcl.Access | Where-Object { $_.AccessControlType -eq 'Allow' -and $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value -notin $allowedSids })
+        if (-not $verifiedAcl.AreAccessRulesProtected -or $unsafe.Count -gt 0) { throw 'DATA_ACL_FAILED' }
+        Write-Host '[LOCAL_DATA_PROTECTED] 本轮数据目录只允许当前用户与 SYSTEM。'
+        $entryName = 'meeting.cjs'
+    }
+    & $node.Source (Join-Path $PSScriptRoot $entryName)
     $exitCode = $LASTEXITCODE
 } catch {
     if ($_.Exception.Message -ne 'PRECHECK_STOP') {

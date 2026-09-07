@@ -7,7 +7,7 @@
 - Priority：EarlyMeeting 当前首要步骤；不改变其他项目优先级。
 - Execution repository：840832144/EarlyMeeting
 - Project key：EARLYMEETING，已通过正式 allocator 验证。
-- Status：Review；正式 [TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)，未标记 Done。
+- Status：User 验收中 / 待 Review；正式 [TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)，未标记 Done。
 - 完整范围：[CURRENT_DIRECTION.md](../docs/CURRENT_DIRECTION.md)
 - 现场状态：[STATUS.md](../STATUS.md)
 
@@ -15,7 +15,19 @@
 
 本 Gate 已完成：AI-Workspace main@1dd6de3 完整 Registry 为 13 canonical / 0 collision / valid；全部远端目标防重无同目标 Task；独立 worktree 由 Approved Candidate / remote-CAS allocator 分配 TASK-0028，重建后为 14 canonical / 0 collision / valid。准备 commit a68b663 已推送；reservation pending-main，Review 后才合并并 finalize。没有复用其他任务预约。
 
-## 当前执行证据
+## 当前本人行实现与唯一下一步
+
+User 已批准本人行同卡填写，随后要求停止自动测试、直接在飞书验收，并将第二列改为自动引用部门。预计 10～20 人逐行排列。Task 重新防重、Registry 校验通过，续接 TASK-0028，不另占编号；准备提交 AI-Workspace@a9aaa6b 已推送。
+
+当前代码入口：tools/callback-test/START_MEETING.cmd；实际运行目录为 User 桌面的 EarlyMeeting-local-callback-test。保留现有应用、原线上模板及 SEND_TEST_CARD.cmd；动态布局由本仓库构建。凭据不变，受控数据目录 .local/meeting 仅当前用户与 SYSTEM；保存最小记录和待确认操作，无原始回调、完整日志或凭据副本。
+
+现场：16:26 真实连接并发出空卡片；16:27 User 新增一行，16:28 共同保存原职位与内容。User 否定首版 UI 后已改固定三列 1:1:3，16:32 原卡片布局更新成功，原保存行保留。后续第二列改为“部门”，只接收本人晨会内容；当前接收程序保持连接供 User 验收，不自启、不定时。
+
+自动部门当前未通过：最初缺少通讯录访问权限返回 99991672；①基本通讯录与③部门基础权限生效后 API code=0，但 department_ids 字段仍缺失。官方明确该字段需② contact:user.department:readonly 或既有等价历史授权。User 强调只需部门名，未授权手填替代；已解释我们只查询所属部门及名称，不遍历组织层级，但仍需字段权限。不绕过审核、不猜部门，当前显示“部门待同步”。
+
+唯一下一步：User 开通②并发布后，Codex 重新启动以补齐同一卡片部门；User 可同时邀请另一员工进测试群直接验收。新布局、真实双人归属/防重/同时草稿保留/手机效果仍未完成验收。详见 [本人行操作说明](../tools/callback-test/MEETING.md) 与 [脱敏验收记录](../docs/MEETING_ACCEPTANCE.md)。User 要求停止后不再运行自动测试，旧离线通过记录不能代表最新 UI。间歇网络根因仍未确认。Subagents: none。
+
+## 前一诊断阶段证据（历史，不代表当前范围）
 
 - 业务分支：codex/task-0028-local-callback，基于新 PR #3@b18e393；旧 PR #1/#2 已关闭且未合并。
 - User 确认桌面 EarlyMeeting-local-callback-test 是实际目录，v0.1.0 / Node v24.20.0 / SDK 1.73.3。旧源文件已原位备份。
@@ -55,7 +67,7 @@ Safety：凭据只经本机受控输入，不读回到模型输出；不传原�
 
 Handoff：完成后返回 canonical Task 路径、业务 branch/commit、根因及证据、离线/现场结果分别列示、剩余阻塞和唯一下一步，交 ChatGPT Review 与 User 验收。没有实施证据不得标记 Done。
 
-## Idea Handoff
+## 初始 Idea Handoff（历史）
 
 Idea title: EarlyMeeting｜现有飞书晨会卡片的本机回调接入
 Suggested section: Current（User 已批准本轮接管；尚未实现验收）
