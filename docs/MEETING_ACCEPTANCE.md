@@ -6,6 +6,8 @@
 
 ## 最新增量：本人删除、醒目标题与逐日调度
 
+正式群2启用（2026-09-07）：User 在本机填写并回复“添加了”。已有两个群 ID 保持一致，唯一新增群 ID 格式及防重有效；User 修改的本机群名保留。无待确认操作，STOP_VERIFIED 后启用群2，start_date=2026-09-08。实际 HTTP 101 / CONNECTED / SCHEDULE_CONFIGURED groups=3 scheduled=3 time=09:45，测试群原消息 rows=2 / MEETING_READY；今天未向两个正式群补发。没有新增自动测试、模拟交互或成员查询；未来正式群发卡与准点触发未到时实测。原始配置、群名称及 ID 均不进入仓库。Subagents: none。
+
 正式群1启用（2026-09-07）：User 本机填 ID 后明确回复“已入群”。群 ID 格式及配置防重检查通过，正式群1 enabled=true / schedule=true / start_date=2026-09-08；正式群2关闭，测试群保留。STOP_VERIFIED 后重启取得 HTTP 101 / CONNECTED、SCHEDULE_CONFIGURED groups=2 / scheduled=2 / time=09:45、测试群 MEETING_RESUMED same_message=true / rows=2 / MEETING_READY。今天未向正式群补发；没有新增自动测试、模拟交互或群成员查询。正式群实际发送与未来准点触发尚未到时实测，不将配置加载当作发卡成功。凭据、群标识和原始回调未输出或上传。Subagents: none。
 
 同轮新增今日交付：User 明确卡片三部分为策划、程序、今日交付；今日交付为全群共用文本框，编辑向群成员开放。v11 迁移前核对无待确认操作，保留现有两行。实际 STOP_VERIFIED、HTTP 101 / CONNECTED、SCHEDULE_CONFIGURED time=09:45，MEETING_RESUMED rows=2 / LAYOUT_UPDATED same_message=true / MEETING_READY。未新发消息，未自动提交或清空，新增共享交付回调尚未冒称实测通过；由 User 直接使用反馈。

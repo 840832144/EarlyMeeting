@@ -17,7 +17,7 @@
 
 ## 当前三区域实现与唯一下一步
 
-正式群1已启用：User 已在本机填好 ID 并确认现有机器人入群；本机 enabled=true / schedule=true / start_date=2026-09-08。重启后 HTTP 101 / CONNECTED、groups=2 / scheduled=2 / time=09:45，测试群原消息两行恢复；正式群1明天开始，今天未补发。正式群2只预留并关闭，10:15 提醒继续暂停。最外层“编辑群配置.cmd”可直接打开本机配置，真实群标识不进入仓库。未来准点发送未到时实测，Task 继续 Review。Subagents: none。
+两个正式群已启用：User 完成群2本机填写及添加后，群2沿用群1规则 enabled=true / schedule=true / start_date=2026-09-08。重启后 HTTP 101 / CONNECTED、groups=3 / scheduled=3 / time=09:45，测试群原消息两行恢复；两个正式群明天开始，今天未补发。User 已修改本机显示群名，本次按旧配置的既有群 ID 排除并识别唯一新增群，保留用户命名，不依赖固定“正式群1/2”文字识别。10:15 提醒继续暂停。最外层“编辑群配置.cmd”可直接打开配置，真实群名及 ID 不进入仓库。未来准点发送未到时实测，Task 继续 Review。Subagents: none。
 
 最新实现 v11：策划、程序、今日交付三个同级区域。今日交付为全群共用的一个文本框，内容/操作两列，所有群成员可提交或清空，个人行归属检查不变。共享内容与 revision 随按群/日期状态保存；独立版本检查、相同意图恢复与串行更新沿用现有机制。现场 HTTP 101 / CONNECTED、time=09:45、MEETING_RESUMED rows=2 / LAYOUT_UPDATED / MEETING_READY，原两行和消息保留，未模拟提交或清空。新增区直接供 User 使用，正式交付等待 Review。Subagents: none。
 
