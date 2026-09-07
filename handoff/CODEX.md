@@ -27,7 +27,7 @@ User 最终批准：同一张卡片按“策划 / 程序”分两个区域，各
 
 本次重启捕获 IPv4 TCP ETIMEDOUT，之后自动重连取得 HTTP 101；已定位握手前超时阶段，但具体网络设备、代理或路由根因仍未确认，未改全局网络配置。
 
-唯一下一步：User 与同事直接验收最终两区排版、各区新增/保存、重复和跨区点击防重、拒绝代改、同时输入保留及手机效果；Codex 根据反馈修改。当前实现提交等待 Review，不标记 Done。详见 [操作说明](../tools/callback-test/MEETING.md) 与 [脱敏验收记录](../docs/MEETING_ACCEPTANCE.md)。User 要求停止后没有再运行自动测试，旧离线记录不当作最新 UI 已通过。Subagents: none。
+唯一下一步：User 与同事直接使用，发现实际问题再由 Codex 修改；现有核心实现提交等待 Review，不另加多人/手机/压力测试或验收清单，不标记 Done。详见 [操作说明](../tools/callback-test/MEETING.md) 与 [脱敏证据](../docs/MEETING_ACCEPTANCE.md)。User 要求停止后没有再运行自动测试，旧离线记录不当作最新 UI 已通过。Subagents: none。
 
 ## 前一诊断阶段证据（历史，不代表当前范围）
 
