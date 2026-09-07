@@ -12,11 +12,11 @@ function beijing(now=Date.now()) {
 const json=file=>JSON.parse(fs.readFileSync(file,'utf8').replace(/^\uFEFF/,''));
 function readGroups(directory,config) {
   const file=path.join(directory,'groups.json');
-  if(!fs.existsSync(file))fs.writeFileSync(file,JSON.stringify({version:1,timezone:'Asia/Shanghai',time:'10:00',
+  if(!fs.existsSync(file))fs.writeFileSync(file,JSON.stringify({version:1,timezone:'Asia/Shanghai',time:'09:45',
     weekdays:[1,2,3,4,5],groups:[{name:'测试群',chat_id:config.chatId,enabled:true,schedule:false,
       start_date:beijing().date}]},null,2),{flag:'wx',mode:0o600});
   const c=json(file);
-  if(c.version!==1||c.timezone!=='Asia/Shanghai'||c.time!=='10:00'||
+  if(c.version!==1||c.timezone!=='Asia/Shanghai'||c.time!=='09:45'||
     JSON.stringify(c.weekdays)!=='[1,2,3,4,5]'||!Array.isArray(c.groups)||c.groups.length>20)
     throw new Error('GROUP_CONFIG_INVALID');
   for(const g of c.groups) {
@@ -58,7 +58,7 @@ class MeetingSchedule {
     this.active=new Map();this.day=null;this.stopped=false;this.work=null;
   }
   start() {
-    this.output(`[SCHEDULE_CONFIGURED] groups=${this.groups.length}; scheduled=${this.groups.filter(g=>g.schedule).length}; weekdays=1-5; time=10:00; timezone=Asia/Shanghai`);
+    this.output(`[SCHEDULE_CONFIGURED] groups=${this.groups.length}; scheduled=${this.groups.filter(g=>g.schedule).length}; weekdays=1-5; time=09:45; timezone=Asia/Shanghai`);
     this.timer=setInterval(()=>{void this.tick();},15000);
     void this.tick();
   }
@@ -81,7 +81,7 @@ class MeetingSchedule {
       const config={...this.config,chatId:g.chat_id};
       const dir=dayDirectory(this.directory,config,today.date);
       const exists=fs.existsSync(path.join(dir,'meeting-state.json'));
-      const due=g.schedule&&today.weekday>=1&&today.weekday<=5&&today.minute>=600&&today.date>=g.start_date;
+      const due=g.schedule&&today.weekday>=1&&today.weekday<=5&&today.minute>=9*60+45&&today.date>=g.start_date;
       if(!exists&&!due)continue;
       const output=line=>this.output(`[GROUP_${i+1}] ${line}`);
       let slot;
