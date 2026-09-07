@@ -17,6 +17,18 @@
 
 ## 当前两区域实现与唯一下一步
 
+### 当前交付 v0.4.0（优先于下方历史快照）
+
+User 已认可两区效果，追加本人删除、24px 加粗分区标题及多群工作日北京时间 10:00 每群每天一张。已按 Registry / 远端防重续接 TASK-0028；准备 commit AI-Workspace@96e5fa6。正式群尚未指定，本机仅测试群 enabled=1 / scheduled=1；Group JSON 与按群/日期状态位于受限 .local/meeting，应用密钥未复制。
+
+现有测试卡片已迁移并真实更新，保留原消息与两行记录。HTTP 101 / CONNECTED、SCHEDULE_CONFIGURED、MEETING_RESUMED rows=2 / LAYOUT_UPDATED / MEETING_READY 已取得；今天未重复发卡。删除核对操作者与行版本，只删除本人行，成功后可换区添加；程序单进程处理多个配置群，逐日 UUID 与状态防重，10:00 后启动补当天缺卡，不补历史日期。
+
+操作入口仍为桌面 START_MEETING.cmd，详见 [操作说明](../tools/callback-test/MEETING.md)。程序必须持续运行才能定时和接收填写；未设置自启、系统服务或更改全局网络安全配置。重启前代码已备份，原单卡状态保留为历史文件，旧版不能直接接管新的逐日状态。
+
+唯一下一步：现有增量交 ChatGPT Review；User 在测试群直接使用，有问题再改，正式群由 User 稍后指定。未运行新增自动测试或模拟员工操作，未冒称删除回调或未来 10:00 实测通过。不标记 Done。Subagents: none。
+
+### 上一轮两区域交付（历史）
+
 User 最终批准：同一张卡片按“策划 / 程序”分两个区域，各有“人员、晨会内容”两列与“＋ 添加我的一行”。姓名由真实操作者带入；点哪个区就在该区创建本人行，默认每人每张卡片只一行。User 取消部门列及自动读取，通讯录查询已删除，不继续申请部门字段权限。10:00 定时关闭，按 User 要求直接验收、边验边改。
 
 正式 Task 已重新 fetch、防重、Registry 校验并续接 TASK-0028，14 canonical / 0 collision / valid，reservation pending-main。两仓库各在原隔离分支继续，没有另占任务编号，也未修改 Document Assistant。

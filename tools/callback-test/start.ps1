@@ -10,7 +10,7 @@ $names = @('EARLYMEETING_APP_ID','EARLYMEETING_APP_SECRET','EARLYMEETING_TEST_CH
 $old = @{}
 foreach ($name in $names) { $old[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 try {
-    if ($Mode -eq 'Meeting') { Write-Host 'EarlyMeeting 本人行晨会（指定测试群，同卡保存，定时关闭）' }
+    if ($Mode -eq 'Meeting') { Write-Host 'EarlyMeeting 晨会（本人行保存/删除，多群工作日 10:00）' }
     else { Write-Host 'EarlyMeeting 本机回调测试（不保存、不更新、不定时发送）' }
     Write-Host '请关闭本应用的其他回调测试进程，只运行一份。'
     $node = Get-Command node.exe -ErrorAction SilentlyContinue
@@ -87,7 +87,7 @@ try {
         Write-Host '[ALREADY_RUNNING] 本电脑已经有同一应用的测试窗口，请使用原窗口。'
         throw 'PRECHECK_STOP'
     }
-    Write-Host '只使用虚构测试文字。保持窗口打开；结束时按 Ctrl+C。'
+    Write-Host '保持窗口打开；结束时按 Ctrl+C。测试群请使用虚构内容。'
     $entryName = 'probe.cjs'
     if ($Mode -eq 'Meeting') {
         $dataDir = Join-Path $PSScriptRoot '.local\meeting'

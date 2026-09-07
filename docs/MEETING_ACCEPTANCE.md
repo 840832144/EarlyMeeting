@@ -2,7 +2,15 @@
 
 - Task：TASK-0028；日期：2026-09-07。
 - 指定测试群，本机持有数据，同一条卡片；User 直接验收、边验边改。
-- 保留现有应用、原模板及发送入口；10:00 定时关闭。Subagents: none。
+- 保留现有应用、原模板及发送入口；最新批准启用测试群工作日 10:00 定时。Subagents: none。
+
+## 最新增量：本人删除、醒目标题与逐日调度
+
+2026-09-07 User 认可两区效果，追加本人删除和标题放大加粗，并明确周一至周五北京时间 10:00、每群每天一张；正式群稍后再发，目前只配置测试群。实现 v0.4.0 / 布局 v5 已覆盖实际运行目录，代码备份仅在本机受限目录。
+
+真实证据：上一进程出现 ROW_ADDED rows=2 / ROW_SAVED fields=1；本次 STOP_VERIFIED 后迁移为按群/日期状态，DAILY_STATE_MIGRATED same_message=true / rows=2。启动曾再次捕获握手前 IPv4 ETIMEDOUT，自动重连后取得 HTTP 101 / CONNECTED。SCHEDULE_CONFIGURED groups=1 / scheduled=1；随后 MEETING_RESUMED rows=2 / LAYOUT_UPDATED same_message=true / MEETING_READY。保留同一消息和两行，未触发新消息发送。
+
+本机群配置 ACL 核对通过，无正式群配置。未自动点击新增、保存或删除，未运行自动测试；新删除回调和未来 10:00 发卡尚未实测，不以额外验收清单阻止交付。每区改为根表单，实际操作者之外字段不保存、不输出。下方各阶段证据为历史快照，以本节与当前操作说明为准。
 
 ## 现场证据
 

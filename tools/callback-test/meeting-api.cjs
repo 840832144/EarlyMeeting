@@ -23,6 +23,9 @@ function createApi(config,Lark,transport=Lark.defaultHttpInstance) {
     updateRow:(cardId,p,element)=>p.kind==='add'
       ? call(client.cardkit.v1.cardElement.create({path:{card_id:cardId},data:{type:'insert_before',
         target_element_id:`add_${p.row.section}`,uuid:p.uuid,sequence:p.sequence,elements:JSON.stringify([element])}}))
+      : p.kind==='delete'
+      ? call(client.cardkit.v1.cardElement.delete({path:{card_id:cardId,element_id:p.row.id},
+        data:{uuid:p.uuid,sequence:p.sequence}}))
       : call(client.cardkit.v1.cardElement.update({path:{card_id:cardId,element_id:p.row.id},
         data:{uuid:p.uuid,sequence:p.sequence,element:JSON.stringify(element)}})),
   };

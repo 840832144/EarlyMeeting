@@ -1,58 +1,58 @@
-# 策划 / 程序晨会：一键启动与验收
+# 晨会卡片：添加、保存、删除与定时发送
 
-正式任务：[TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)。当前按 User 最终决定：同一张卡片分“策划”“程序”两个区域，各有“人员、晨会内容”两列和“＋ 添加我的一行”。部门列和自动通讯录读取已取消。
+正式任务：[TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)。实际目录：`C:\Users\admin\Desktop\EarlyMeeting-local-callback-test`。保留现有「晨会记录」应用、原模板和原发送入口，不需要部门或通讯录读取权限。
 
-## 怎么使用
+## 日常操作
 
-实际目录：`C:\Users\admin\Desktop\EarlyMeeting-local-callback-test`。
+1. 双击 **START_MEETING.cmd**，保持电脑开机、联网，程序持续运行。沿用本机凭据 JSON，不用重新输入密钥。
+2. 在当天卡片的 **策划** 或 **程序** 区域点 **＋ 添加我的一行**。分区标题为 24px 加粗，姓名自动带入；填写晨会内容后点 **保存本行**。
+3. 选错区域时，点本人行的 **删除本行**；行消失后到正确区域重新添加。删除会移除该行已保存内容，新行从空内容开始。仅本人可保存和删除，每人每卡最多一行。
+4. **CHECK_MEETING.cmd** 查看状态，**STOP_MEETING.cmd** 停止。重启恢复当天同一卡片与已保存记录，不重复发消息。
 
-1. 双击 **START_MEETING.cmd**，保持窗口打开。沿用已填好的 `.local/config.json`，无需重新输入密钥。出现 **CONNECTED / MEETING_READY** 后打开指定测试群。
-2. 首次启动发送本轮一张空卡片；后续启动恢复原卡片和已保存记录，不重复发消息，不按日期自动开新轮。
-3. 在“策划”或“程序”区域点 **＋ 添加我的一行**。姓名自动带入，员工填写自己的晨会内容，点击 **保存本行**。
-4. “正在保存”只表示接收；本行更新后按钮显示“已保存 · 再保存”。需要修改时仍保存本人行。默认每人每张卡片一行，重复或跨区点击加号会提示回到已有行，不重复创建或擅自移动。
-5. 同事加入当前测试群即可点击对应区域的加号。程序没有单独员工白名单，也不要求同事提供密钥。若飞书提示无权使用应用，由 User 将其纳入现有应用可用范围。
-6. **CHECK_MEETING.cmd** 显示运行状态及脱敏状态码；**STOP_MEETING.cmd** 停止并保留记录。重启继续同一张卡片。
+每张卡片最多 20 行、每行最多 300 字，同时受整卡容量限制。输入时不保存，按钮变为“已保存 · 再保存”后才完成同步。他人可能能点入客户端输入框，但无法保存或删除你的行。
 
-两个区域都使用人员 / 内容 1:4 列宽。当前最多 20 人、每行内容最多 300 字，并检查整卡组件数和体积；接近上限时提示精简。逐字输入不发送，点保存后同步。手机、窄窗口及多人同时输入的实际效果由 User 验收。
+## 工作日 10:00 与多个群
 
-当前共享卡片客户端可能允许点进他人输入框，但服务端根据真实操作者拒绝保存他人行；姓名不可代选。每一行使用独立表单，仅回传本人所操作行的内容。
+当前本机仅启用「晨会记录测试」群。正式项目群等 User 确定后，将现有机器人加入目标群，再配置其群 ID。员工加入群即可操作；若飞书提示无应用权限，再由 User 调整现有应用可用范围，不给员工配置密钥。
 
-## 权限与边界
+每个启用定时的群在 **周一至周五、北京时间 10:00** 独立发送当天一张空卡片，全天在这一张上填写。按北京时间计算，不受 Windows 显示时区影响。当天 10:00 后才启动或恢复连接，会补发当天缺少的卡片；不补发过去日期，不在周末自动发送。当天已发送则继续使用，重启也不重发。旧日期卡片保留展示，填写使用当天卡片。
 
-现有应用、原线上模板和模板发送入口保留。新版布局由本仓库构建；不重新创建应用，不覆盖或发布原模板。
+电脑关机、睡眠、断网或程序停止时无法准点发送或处理填写。没有设置 Windows 自启、系统服务或改变全局网络配置。原测试卡片已归入今天，不因启用定时再补发；下一次正常发送为 **2026-09-08 10:00**。
 
-“策划 / 程序”由点击哪个区域决定，不从员工档案推断；已删除通讯录查询实现，因此不需要申请“获取用户组织架构信息”等部门读取权限。已在应用后台开启的其他权限由 User 管理，程序不会擅自撤销。
+多群配置在本机 **.local/meeting/groups.json**，凭据仍在 **.local/config.json**。修改后停止并重新启动。参考 [groups.example.json](groups.example.json)，示例正式群默认关闭，不包含真实标识。
 
-仅处理配置的测试群和本轮消息。工作日北京时间 10:00 定时、自启、系统服务、其他群及生产部署均未启用。CardKit 实体有效期为 14 天，本程序在 13 天后停止继续更新并交维护者处理，不自动新开一轮。
+| 字段 | 含义 |
+| --- | --- |
+| name | 本机便于识别的群名 |
+| chat_id | 现有机器人已加入的群 ID，仅填在本机 |
+| enabled | 是否接收该群当天卡片的操作 |
+| schedule | 是否在工作日 10:00 给该群发当天卡片 |
+| start_date | 定时开始的北京时间日期，YYYY-MM-DD |
+
+第二个项目群只需增加一个配置，各群独立保存日期、消息和内容。重复启用同一群 ID 会拒绝启动。`timezone`、`time`、`weekdays` 固定为当前批准的北京时间、10:00、周一至周五。
 
 ## 遇到提示时
 
-| 提示 | 怎么处理 |
-| --- | --- |
-| ALREADY_RUNNING | 使用已打开窗口；诊断模式与晨会模式互斥，同一应用只运行一个接收程序。 |
-| UPDATE_UNCONFIRMED / UPDATE_PENDING | 尚未确认保存；保留本机数据交维护者核对，不删文件或重新发卡。 |
-| MESSAGE_SEND_UNCONFIRMED | 50 分钟内重启仅重试同一个请求；超时停止，先核对群里消息。 |
-| CARD_CREATE_UNCONFIRMED / MEETING_NOT_READY | 创建或布局状态待核对，不自动重建，不清空数据强行重发。 |
-| “只能保存自己创建的那一行” | 回到本人姓名的行填写。 |
-| “该行已更新” | 使用最新卡片上的本人行重新保存，避免旧页面覆盖新内容。 |
-| “已经在某区有一行” | 在已有行继续填写；不自动跨区移动。 |
+- **ALREADY_RUNNING**：使用现有进程，同一应用只运行一份；诊断与晨会模式互斥。
+- **已经在某区有一行**：继续填写已有行，或删除本人行后换区添加。
+- **只能保存或删除自己创建的那一行**：操作本人姓名的行。
+- **该行已更新**：使用最新卡片上的按钮。
+- **UPDATE_UNCONFIRMED / UPDATE_PENDING / MEETING_NOT_READY**：结果尚未确认，保留本机数据交维护者核对，不删文件强行重发。
+- **MESSAGE_SEND_UNCONFIRMED**：50 分钟内重启只重试同一请求；超时先核对群消息。
+- **LOCAL_STATE_INVALID**：核对本机群配置和状态文件，不上传凭据或原始文件。
 
-## 本机数据与回退
+## 维护者说明
 
-`.local/meeting/` 仅当前 Windows 用户与 SYSTEM 可访问，保存本轮关联标识、本人内容、区域和最小待确认操作。不保存原始回调、回调 token、应用密钥副本、员工通讯录或 SDK 完整日志。未提交草稿仅在飞书客户端，本机无法恢复。
+一个官方 SDK 长连接服务所有配置群，回调核对实际群、当天消息、操作者、行归属与版本。每区一个根表单、每行两列分栏，服务端只取实际操作者所点行的内容字段，其余回传字段不保存、不输出。客户端不设置必填以便删除空行；保存仍由服务端校验本人内容非空及长度。
 
-`status.log` 仅固定状态码、行数、字段数及同消息标志，不包含内容或成员标识。不要上传整个 `.local`、业务数据或完整日志。
+新增用 `cardElement.create(insert_before)`，保存用 `cardElement.update`，删除用 `cardElement.delete`。布局 v5 一次更新原消息并保留已保存行；后续操作只改对应行。
 
-回退本人行功能：先 **STOP_MEETING.cmd**，再使用原 **START_TEST.cmd** 和原模板卡片进行诊断。原 **SEND_TEST_CARD.cmd** 保留。升级前同名脚本备份在 `.local/backup-v0.2.0/`，供维护者按文件恢复，不删除新卡片或数据。旧 **ROLLBACK_TEST.cmd** 是回退到 v0.1.0 的历史入口，不用于清空晨会记录。
+`.local/meeting/` 仅当前 Windows 用户与 SYSTEM 可访问。状态按 `days/<应用与群的哈希>/<北京时间日期>/meeting-state.json` 独立保存。首次升级复制并核对原状态，保留原卡片、消息和两行记录；原文件作为历史备份，不再作为运行状态。不要删除该目录来“重新发送”。
 
-## 维护依据
+发送 UUID、更新 UUID、递增序号和意图先原子保存再请求飞书。结果不明确或 UUID 冲突保持待确认，不冒充成功。各群单独处理失败；定时失败不盲目另建卡片，核对后重启从同一状态恢复。输出仅状态码与数量，不保留原始回调、完整 SDK 日志、回调 token 或通讯录。
 
-姓名用飞书人员引用按真实操作者显示；不读取通讯录。每行一个根表单，内含两列分栏，保存按钮携带行标识和版本。服务端校验指定群、消息、实际操作者、行归属和版本；新增位置只能为已定义的策划或程序区域。
+升级前代码在本机 `.local/meeting/code-backup-v0.3.0/`。旧程序不识别逐日状态，不能直接覆盖当前数据继续运行；回退先停止并核对当天消息与状态。原 START_TEST.cmd / SEND_TEST_CARD.cmd 仅用于历史模板诊断。
 
-新增用 `cardElement.create(insert_before)` 插入所选区域的加号前，保存用 `cardElement.update` 替换本人表单。布局迁移一次更新原卡片并保留已保存行；当前唯一旧记录按 User 原先手填“策划”放入策划区，批量未知旧记录不会猜分区。正常新增/保存只改对应行。
+官方依据：[表单容器](https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/card-json-v2-components/containers/form-container)、[字号](https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/card-json-v2-components/content-components/rich-text)、[删除组件](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/cardkit-v1/card-element/delete)。
 
-先响应点击，再串行更新，UUID 和递增序号先原子保存后调用 API。只有明确成功才标记完成；结果不明或 UUID 冲突保持待确认，不冒充保存成功。重启重用本轮卡片及待确认请求，不产生第二条消息。
-
-官方依据：[创建卡片实体](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/cardkit-v1/card/create)、[新增组件](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/cardkit-v1/card-element/create)、[更新组件](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/cardkit-v1/card-element/update)、[表单容器](https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/card-json-v2-components/containers/form-container)。
-
-保留 Node 24.20.0 / SDK 1.73.3，不改全局网络配置。User 要求直接验收后，晨会启动不运行离线自检，不追加自动测试或模拟群操作；历史检查不代表最新 UI 已通过。Subagents: none。
+User 要求只做核心功能、使用中反馈；本次不增加自动测试或模拟员工操作，历史测试结果不代表新功能全量验证。Node 24.20.0 / SDK 1.73.3 不变。Subagents: none。

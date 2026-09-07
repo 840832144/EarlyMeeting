@@ -39,7 +39,7 @@ class MeetingService {
     }else this.record('MEETING_RESUMED',`same_message=true; rows=${s.rows.length}`);
     if(s.pending)await this.flush();
     s=this.store.get();
-    if(!s.pending && s.layoutVersion!==4) {
+    if(!s.pending && s.layoutVersion!==5) {
       if(!s.layoutPending) {
         // The only live legacy row was entered as 策划 by the User. Never infer
         // section from a person's identity or unknown department for bulk migration.
@@ -54,7 +54,7 @@ class MeetingService {
       try{reply=await this.api.updateLayout(s.cardId,s.layoutPending,meetingCard(s.rows));}
       catch(e){this.record('LAYOUT_UNCONFIRMED',diagnosis(e,'CALLBACK'));return false;}
       if(reply?.code!==0){this.record('LAYOUT_UNCONFIRMED',diagnosis(reply,'CALLBACK'));return false;}
-      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=4;this.store.put(s);
+      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=5;this.store.put(s);
       this.record('LAYOUT_UPDATED',`same_message=true; rows=${s.rows.length}`);
     }
     return !this.store.get().pending;
@@ -65,11 +65,11 @@ class MeetingService {
     if(this.stopped||this.fault||state.stage!=='sent')return {error:'接收程序尚未就绪，请稍后重试。'};
     if(this.now()-state.createdAt>=13*24*60*60*1000)return {error:'本轮卡片已到更新期限，请联系维护者。'};
     if(e?.context?.open_chat_id!==this.config.chatId || e?.context?.open_message_id!==state.messageId)
-      return {error:'请使用本轮晨会测试卡片。'};
+      return {error:'请使用本群当前晨会卡片。'};
     if(!/^ou_[A-Za-z0-9_-]{1,100}$/.test(e?.operator?.open_id||'') || e?.action?.tag!=='button')
       return {error:'无法核对本次操作，请重新点击按钮。'};
     const value=e.action.value;
-    if(!value || !['add','save'].includes(value.op))return {error:'请使用本轮卡片上的按钮。'};
+    if(!value || !['add','save','delete'].includes(value.op))return {error:'请使用本轮卡片上的按钮。'};
     const eventId=payload?.header?.event_id;
     // Token is hashed only in memory if the dispatcher supplies no event ID.
     const nonce=typeof eventId==='string'?eventId:e.token;
@@ -80,15 +80,17 @@ class MeetingService {
       if(!Object.hasOwn(SECTIONS,value.section||''))return {error:'请选择策划或程序区域下的加号。'};
       request.section=value.section;
     }
-    if(value.op==='save') {
+    if(value.op==='save'||value.op==='delete') {
       const row=state.rows.find(r=>r.id===value.row);
-      if(!row||row.owner!==request.owner)return {error:'只能保存自己创建的那一行。'};
+      if(!row||row.owner!==request.owner)return {error:'只能保存或删除自己创建的那一行。'};
+      if(!Number.isSafeInteger(value.revision)||value.revision!==row.revision)
+        return {error:'该行已更新，请使用最新卡片上的按钮。'};
+      Object.assign(request,{row:row.id,revision:value.revision});
+      if(value.op==='delete')return request;
       const form=e.action.form_value;
       const content=form?.[`content_${row.id}`];
       if(typeof content!=='string'||!content.trim()||content.length>MAX_CONTENT)
         return {error:`请填写晨会内容（${MAX_CONTENT}字内），再保存本行。`};
-      if(!Number.isSafeInteger(value.revision)||value.revision!==row.revision)
-        return {error:'该行已更新，请在最新内容上重新保存。'};
       Object.assign(request,{row:row.id,revision:value.revision,content:content.trim()});
     }
     return request;
@@ -101,7 +103,7 @@ class MeetingService {
     if(s.pending)return toast('上次更新仍待确认，请先检查接收程序。','warning');
     if(request.kind==='add' && s.rows.some(r=>r.owner===request.owner)) {
       const existing=s.rows.find(r=>r.owner===request.owner);
-      this.record('ROW_EXISTS',`rows=${s.rows.length}`);return toast(`你已经在${SECTIONS[existing.section]}区有一行了，请在已有行填写或修改。`);
+      this.record('ROW_EXISTS',`rows=${s.rows.length}`);return toast(`你已经在${SECTIONS[existing.section]}区有一行了。选错区域可先删除本行，再重新添加。`);
     }
     if(request.kind==='add' && s.rows.length>=MAX_ROWS)return toast('本轮卡片已满 20 人，请联系维护者。','warning');
     if(request.kind==='save' && !cardBudget(s.rows.map(r=>r.id===request.row?
@@ -113,7 +115,8 @@ class MeetingService {
     this.queue=this.queue.then(async()=>{await wait(this.delay);await this.apply(request);})
       .catch(e=>{this.fault=true;this.record('MEETING_FAULT',diagnosis(e,'CALLBACK'));})
       .finally(()=>{this.queued--;});
-    return toast(request.kind==='add'?'正在添加你的行，请稍候。':'已接收，正在保存本行；完成后按钮会显示“已保存”。');
+    return toast(request.kind==='add'?'正在添加你的行，请稍候。':request.kind==='delete'
+      ?'正在删除本行；行消失后可在另一个区域重新添加。':'已接收，正在保存本行；完成后按钮会显示“已保存”。');
   }
   async apply(request) {
     if(this.fault)return;
@@ -128,9 +131,10 @@ class MeetingService {
     }else{
       const previous=s.rows.find(r=>r.id===request.row);
       if(!previous||previous.owner!==request.owner||previous.revision!==request.revision){this.record('STALE_SAVE_REJECTED');return;}
-      row={...previous,content:request.content,revision:previous.revision+1};
+      row=request.kind==='delete'?previous:{...previous,content:request.content,revision:previous.revision+1};
     }
-    const nextRows=request.kind==='add'?[...s.rows,row]:s.rows.map(r=>r.id===row.id?row:r);
+    const nextRows=request.kind==='add'?[...s.rows,row]:request.kind==='delete'
+      ?s.rows.filter(r=>r.id!==row.id):s.rows.map(r=>r.id===row.id?row:r);
     if(!cardBudget(nextRows).valid){this.record('CARD_SIZE_LIMIT');return;}
     s.pending={kind:request.kind,row,event:request.event,uuid:randomUUID(),sequence:s.sequence+1};
     this.store.put(s);await this.flush();
@@ -146,10 +150,12 @@ class MeetingService {
       // and fail closed rather than incrementing sequence or creating duplicates.
       this.record('UPDATE_UNCONFIRMED',diagnosis(reply,'CALLBACK'));return false;
     }
-    s.rows=p.kind==='add'?[...s.rows,p.row]:s.rows.map(r=>r.id===p.row.id?p.row:r);
+    s.rows=p.kind==='add'?[...s.rows,p.row]:p.kind==='delete'
+      ?s.rows.filter(r=>r.id!==p.row.id):s.rows.map(r=>r.id===p.row.id?p.row:r);
     s.sequence=p.sequence;s.events=[...s.events,p.event].slice(-256);s.pending=null;
     this.store.put(s);
-    this.record(p.kind==='add'?'ROW_ADDED':'ROW_SAVED',`rows=${s.rows.length}; same_message=true; fields=${p.kind==='add'?0:1}`);
+    this.record(p.kind==='add'?'ROW_ADDED':p.kind==='delete'?'ROW_DELETED':'ROW_SAVED',
+      `rows=${s.rows.length}; same_message=true; fields=${p.kind==='save'?1:0}`);
     return true;
   }
   async stop(){this.stopped=true;await this.queue;}
