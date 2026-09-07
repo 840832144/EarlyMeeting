@@ -7,7 +7,7 @@
 - Priority：EarlyMeeting 当前首要步骤；不改变其他项目优先级。
 - Execution repository：840832144/EarlyMeeting
 - Project key：EARLYMEETING，已通过正式 allocator 验证。
-- Status：In Progress；正式 [TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)。
+- Status：Review；正式 [TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)，未标记 Done。
 - 完整范围：[CURRENT_DIRECTION.md](../docs/CURRENT_DIRECTION.md)
 - 现场状态：[STATUS.md](../STATUS.md)
 
@@ -21,9 +21,10 @@
 - User 确认桌面 EarlyMeeting-local-callback-test 是实际目录，v0.1.0 / Node v24.20.0 / SDK 1.73.3。旧源文件已原位备份。
 - User 追加授权本机 JSON：已创建受 ACL 限制且 Git 忽略的 .local/config.json；User 自行填写，启动无需反复输入。
 - 2026-09-07 15:13:25 北京时间真实 ENDPOINT_OK / CONNECTED；未升级 Node/SDK或更改全局网络安全配置。后续重启复现过入口成功后握手失败，当前增加专属 transport 观察器并再次取得 HTTP 101 / CONNECTED；间歇底层根因尚未确认。
-- 离线 43 组既有回归与 6 项新增测试通过；真实卡片与表单待 User 在现有测试群操作。详见 [脱敏实测摘要](../docs/CALLBACK_VALIDATION.md)。
-- 一键启动、检查、停止、回滚见 [操作说明](../tools/callback-test/README.md)。不保存工作内容、不更新公共卡片、不启用定时。Subagents: none。
-- 当前唯一下一步：在现有测试卡片提交虚构输入，核对真实字段后验证停止并提交 Review。
+- 离线 43 组既有回归与 8 项新增测试通过。User 追加“一键发送”已实现，现有应用/指定群/现有模板实发一张成功，再次执行防重通过。发送仅用于本轮手动测试，未更新原卡片或启用定时。
+- User 最终确认此前漏加回调；补充新版 card.action.trigger 及发布步骤后，15:41:10、15:41:14 两次真实 CALLBACK_OK / INPUT_CHECK verified=true；User 截图收到测试 toast。form_value 字段数 0，仅独立文本验收通过，完整三列表单未验收。15:42:27 STOP_VERIFIED / NOT_RUNNING。详见 [脱敏实测摘要](../docs/CALLBACK_VALIDATION.md)。
+- 一键启动、手动发卡、检查、停止、回滚见 [操作说明](../tools/callback-test/README.md)。不保存工作内容、不更新公共卡片、不启用定时。Subagents: none。
+- 当前唯一下一步：ChatGPT Review 本轮最小修复、两次真实独立输入及停止证据。保留完整三列表单与间歇网络根因未验收；再审阅 [多人汇总范围说明](../docs/CURRENT_DIRECTION.md#后续产品目标澄清)，不自动启用保存或公共卡片更新。
 
 ## 原接管 Gate（已执行，保留依据）
 

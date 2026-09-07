@@ -9,7 +9,17 @@
 
 已通过 AI-Workspace Registry / 目标防重 / remote-CAS allocator 正式登记 [TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)。后文「未分配编号」描述的是接管前基线，当前执行入口以此 Task 为准。
 
-User 本轮追加授权：凭据与测试群配置填入仅本机 `.local/config.json`，替代反复交互输入；文件限制当前用户与 SYSTEM，排除 Git，不读取到模型输出、不上传或导入旧 .env。配置仅供接收程序使用，不改变应用、模板或发送流程。实施状态见 [实测摘要](CALLBACK_VALIDATION.md)，操作入口见 [本机使用说明](../tools/callback-test/README.md)。
+User 本轮追加授权：凭据与测试群配置填入仅本机 `.local/config.json`，替代反复交互输入；文件限制当前用户与 SYSTEM，排除 Git，不读取到模型输出、不上传或导入旧 .env。随后 User 要求“一键发送”，允许沿用同一应用、指定测试群和现有模板手动补发本轮一张卡片，配置增加仅本机模板 ID；不得扩展到公共卡片更新或定时。实施状态见 [实测摘要](CALLBACK_VALIDATION.md)，操作入口见 [本机使用说明](../tools/callback-test/README.md)。
+
+## 后续产品目标澄清
+
+User 在本轮实测中明确：目标是同一张卡片实时汇总晨会信息，固定“人员、职位、晨会内容”三列，每人一行，由本人填写；并指出现有模板只有一行。这是产品目标澄清，不恢复旧 PR #1/#2。
+
+建议的最小方案：保留现有应用与模板标识，在卡片上方增加三列多人汇总区，下方提供“填写／修改我的晨会”表单；人员根据真实提交者身份关联，职位和内容一起提交。后端按晨会日期与提交者身份维护一条记录，重复提交只更新本人行，按顺序刷新同一条消息以避免并发覆盖。展示中的人员可由飞书人员标识渲染，无需让成员代选别人。
+
+这需要在后续范围中确认模板布局、数据保存及共享卡片更新。当前只完成真实回调接通和独立输入验证，未实施保存、整组表单或卡片汇总更新；当前 Task Review 不自动授权启用这些动作。通过消息 ID 更新同一张共享卡片的官方能力见 [更新已发送的消息卡片](https://open.feishu.cn/document/server-docs/im-v1/message-card/patch)；实施时需核对共享设置、消息更新期限与频控。固定三列的数据模型和布局仍留在 EarlyMeeting。
+
+Idea Handoff：与唯一 Product Roadmap 中 EarlyMeeting Current 条目属于同一产品目标，已防重，不新增同义条目或 Future Task。建议将多人汇总实施作为后续 Backlog 范围交 Review；一键操作和已验证回调作为前置证据。当前 10:00 定时继续关闭。Subagents: none。
 
 ## 1. 本次变更决定
 

@@ -14,7 +14,7 @@ const NETWORK_CODES = new Set([
   'ERR_SSL_WRONG_VERSION_NUMBER', 'ERR_TLS_HANDSHAKE_TIMEOUT'
 ]);
 const ERROR_TYPES = new Set(['Error', 'TypeError', 'SyntaxError', 'RangeError', 'AxiosError', 'AggregateError']);
-const PHASES = new Set(['STARTUP', 'ENDPOINT', 'WEBSOCKET', 'CONNECTED', 'CALLBACK']);
+const PHASES = new Set(['STARTUP', 'ENDPOINT', 'WEBSOCKET', 'CONNECTED', 'CALLBACK', 'SEND']);
 function numericCode(value) {
   if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= 9999999999) return String(value);
   if (typeof value === 'string' && /^\d{1,10}$/.test(value)) return value;
