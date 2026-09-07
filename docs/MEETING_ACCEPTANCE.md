@@ -6,6 +6,8 @@
 
 ## 最新增量：本人删除、醒目标题与逐日调度
 
+最新 v10 新行提醒：revision=0 时按钮为 danger 红字“未提交”，成功持久化后 revision 增加、变为 primary 蓝字“提交”。实际更新原消息时保留两行，HTTP 101 / CONNECTED、LAYOUT_UPDATED / MEETING_READY 均成功；没有模拟创建或提交，提醒由 User 直接使用。红字不是已提交行未发送草稿的检测器。
+
 最终尺寸调整 v9：内容 340px、操作区 92px，按钮改为“提交 / 删除”，姓名和按钮顶部对齐；超过列宽自动换行增高。实际 STOP_VERIFIED 后重启，HTTP 101 / CONNECTED，MEETING_RESUMED rows=2 / LAYOUT_UPDATED same_message=true / MEETING_READY，原消息和两行保留，未发新消息。未执行自动测试或模拟交互。按查看者隐藏按钮不受当前共享卡片支持，已说明该项未实现；本人提交/删除检查保留。排版最终确认由 User 查看。
 
 User 的标注截图指出 v6 内容框仍独占整行、操作没有落在右侧，v6 排版未通过。原因是水平容器中的 input.width=fill 占满整行；v7 改为 280px 并同步表头列宽。随后 User 明确内容超过列宽后自动换行，v8 保留一行起步与自动增高、取消六行高度上限，姓名和按钮顶部对齐。这里只记录实现及迁移结果，不将 API 更新成功等同于最终排版验收。

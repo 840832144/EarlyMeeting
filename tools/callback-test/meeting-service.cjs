@@ -39,7 +39,7 @@ class MeetingService {
     }else this.record('MEETING_RESUMED',`same_message=true; rows=${s.rows.length}`);
     if(s.pending)await this.flush();
     s=this.store.get();
-    if(!s.pending && s.layoutVersion!==9) {
+    if(!s.pending && s.layoutVersion!==10) {
       if(!s.layoutPending) {
         // The only live legacy row was entered as 策划 by the User. Never infer
         // section from a person's identity or unknown department for bulk migration.
@@ -54,7 +54,7 @@ class MeetingService {
       try{reply=await this.api.updateLayout(s.cardId,s.layoutPending,meetingCard(s.rows));}
       catch(e){this.record('LAYOUT_UNCONFIRMED',diagnosis(e,'CALLBACK'));return false;}
       if(reply?.code!==0){this.record('LAYOUT_UNCONFIRMED',diagnosis(reply,'CALLBACK'));return false;}
-      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=9;this.store.put(s);
+      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=10;this.store.put(s);
       this.record('LAYOUT_UPDATED',`same_message=true; rows=${s.rows.length}`);
     }
     return !this.store.get().pending;
