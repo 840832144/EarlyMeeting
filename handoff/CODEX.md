@@ -15,17 +15,19 @@
 
 本 Gate 已完成：AI-Workspace main@1dd6de3 完整 Registry 为 13 canonical / 0 collision / valid；全部远端目标防重无同目标 Task；独立 worktree 由 Approved Candidate / remote-CAS allocator 分配 TASK-0028，重建后为 14 canonical / 0 collision / valid。准备 commit a68b663 已推送；reservation pending-main，Review 后才合并并 finalize。没有复用其他任务预约。
 
-## 当前本人行实现与唯一下一步
+## 当前两区域实现与唯一下一步
 
-User 已批准本人行同卡填写，随后要求停止自动测试、直接在飞书验收，并将第二列改为自动引用部门。预计 10～20 人逐行排列。Task 重新防重、Registry 校验通过，续接 TASK-0028，不另占编号；准备提交 AI-Workspace@a9aaa6b 已推送。
+User 最终批准：同一张卡片按“策划 / 程序”分两个区域，各有“人员、晨会内容”两列与“＋ 添加我的一行”。姓名由真实操作者带入；点哪个区就在该区创建本人行，默认每人每张卡片只一行。User 取消部门列及自动读取，通讯录查询已删除，不继续申请部门字段权限。10:00 定时关闭，按 User 要求直接验收、边验边改。
 
-当前代码入口：tools/callback-test/START_MEETING.cmd；实际运行目录为 User 桌面的 EarlyMeeting-local-callback-test。保留现有应用、原线上模板及 SEND_TEST_CARD.cmd；动态布局由本仓库构建。凭据不变，受控数据目录 .local/meeting 仅当前用户与 SYSTEM；保存最小记录和待确认操作，无原始回调、完整日志或凭据副本。
+正式 Task 已重新 fetch、防重、Registry 校验并续接 TASK-0028，14 canonical / 0 collision / valid，reservation pending-main。两仓库各在原隔离分支继续，没有另占任务编号，也未修改 Document Assistant。
 
-现场：16:26 真实连接并发出空卡片；16:27 User 新增一行，16:28 共同保存原职位与内容。User 否定首版 UI 后已改固定三列 1:1:3，16:32 原卡片布局更新成功，原保存行保留。后续第二列改为“部门”，只接收本人晨会内容；当前接收程序保持连接供 User 验收，不自启、不定时。
+当前入口：tools/callback-test/START_MEETING.cmd；实际目录为 User 桌面 EarlyMeeting-local-callback-test。凭据沿用受控 JSON；.local/meeting 仅当前用户及 SYSTEM，保存本人内容、区域、关联及最小待确认操作，不保存原始回调、完整日志或通讯录。
 
-自动部门当前未通过：最初缺少通讯录访问权限返回 99991672；①基本通讯录与③部门基础权限生效后 API code=0，但 department_ids 字段仍缺失。官方明确该字段需② contact:user.department:readonly 或既有等价历史授权。User 强调只需部门名，未授权手填替代；已解释我们只查询所属部门及名称，不遍历组织层级，但仍需字段权限。不绕过审核、不猜部门，当前显示“部门待同步”。
+现场：16:26 空卡片实发；16:27 User 新增一行，16:28 保存原职位/内容。按 User UI 反馈先修正三列，再根据最新决定切为两区域；真实 MEETING_RESUMED rows=1 / LAYOUT_UPDATED same_message=true / MEETING_READY 已取得。原唯一记录按 User 原手填“策划”放入策划区，内容保留；每行采用独立根表单。接收程序保持连接供 User 验收。
 
-唯一下一步：User 开通②并发布后，Codex 重新启动以补齐同一卡片部门；User 可同时邀请另一员工进测试群直接验收。新布局、真实双人归属/防重/同时草稿保留/手机效果仍未完成验收。详见 [本人行操作说明](../tools/callback-test/MEETING.md) 与 [脱敏验收记录](../docs/MEETING_ACCEPTANCE.md)。User 要求停止后不再运行自动测试，旧离线通过记录不能代表最新 UI。间歇网络根因仍未确认。Subagents: none。
+本次重启捕获 IPv4 TCP ETIMEDOUT，之后自动重连取得 HTTP 101；已定位握手前超时阶段，但具体网络设备、代理或路由根因仍未确认，未改全局网络配置。
+
+唯一下一步：User 与同事直接验收最终两区排版、各区新增/保存、重复和跨区点击防重、拒绝代改、同时输入保留及手机效果；Codex 根据反馈修改。当前实现提交等待 Review，不标记 Done。详见 [操作说明](../tools/callback-test/MEETING.md) 与 [脱敏验收记录](../docs/MEETING_ACCEPTANCE.md)。User 要求停止后没有再运行自动测试，旧离线记录不当作最新 UI 已通过。Subagents: none。
 
 ## 前一诊断阶段证据（历史，不代表当前范围）
 

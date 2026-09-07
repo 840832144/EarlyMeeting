@@ -1,21 +1,20 @@
 # EarlyMeeting｜当前状态
 
-更新时间：2026-09-07。正式 Task：TASK-0028 / EARLYMEETING；User 直接验收、边验边改，等待 Review，不标记 Done。
+更新时间：2026-09-07。TASK-0028 / EARLYMEETING；User 直接验收、边验边改，交付等待 Review，不标记 Done。
 
 | 项目 | 状态 |
 | --- | --- |
-| 当前入口 | [本人行一键操作](tools/callback-test/MEETING.md)、[当前方向](docs/CURRENT_DIRECTION.md)、[Handoff](handoff/CODEX.md) |
+| 当前入口 | [两区域一键操作](tools/callback-test/MEETING.md)、[当前方向](docs/CURRENT_DIRECTION.md)、[Handoff](handoff/CODEX.md) |
 | 正式准备 | Registry 14 canonical / 0 collision / valid；同目标仅 TASK-0028，续接未另占号，reservation pending-main |
-| 本机 | 桌面 EarlyMeeting-local-callback-test；Node 24.20.0 / SDK 1.73.3；沿用本机 JSON，数据目录 ACL 已限制 |
-| 原资产 | 现有应用、原线上模板及模板发送入口保留；动态布局由 EarlyMeeting 代码构建 |
-| 发卡 | 16:26:54 HTTP 101 / CONNECTED；16:26:56 空卡片真实发到指定测试群，MEETING_READY |
-| 本人行 | 16:27:45 ROW_ADDED rows=1；16:28:03 ROW_SAVED rows=1 / fields=2 / same_message=true |
-| UI 修正 | 首版姓名独占一行，User 不接受；已按反馈改成固定三列 1:1:3，内容栏加宽，同一消息及保存内容保留 |
-| 最新需求 | 第二列从职位改为自动部门；员工只填晨会内容，新布局已更新到原卡片 |
-| 自动部门 | 现有应用读取通讯录返回 99991672（权限不足）；暂显示“部门待同步”，等待 User 配置权限及发布，不猜部门 |
-| 多人验收 | User 可邀请同事进入配置的测试群直接填写；新三列布局、另一员工加入、互相不可代改、同时输入保留、手机效果由 User 继续验收 |
-| 接收进程 | 晨会模式保持长连接供 User 验收；一键启动不再运行离线自检 |
-| 旧连接问题 | 诊断丢弃 SDK 错误细节的缺陷已处理；间歇握手失败的底层网络原因仍未确认 |
-| 边界 | 仅指定测试群、受控本机保存；其他群、生产部署、自启与工作日 10:00 调度未启用 |
+| 本机 | 桌面 EarlyMeeting-local-callback-test；Node 24.20.0 / SDK 1.73.3；沿用本机 JSON，数据目录 ACL 受限 |
+| 现有资产 | 原应用、原模板及模板发送入口保留；动态布局由 EarlyMeeting 构建 |
+| 发卡与保存 | 16:26 真实空卡片已发送；16:27 User 新增一行，16:28 保存原职位和内容，均为同一消息 |
+| 最终 UI | 策划、程序两个区域，各有人员 / 晨会内容两列和独立加号；姓名自动带入，内容由本人填写 |
+| 当前布局 | 真实 MEETING_RESUMED / LAYOUT_UPDATED / MEETING_READY；原唯一记录按原手填策划归入策划区，保存内容保留 |
+| 部门读取 | User 已取消部门列及自动读取，通讯录查询实现已移除，不再依赖或申请部门字段权限 |
+| 当前进程 | 长连接保持供 User 验收，无自动测试、自启或定时 |
+| 待 User 验收 | 最终两区排版、另一员工新增/保存、跨区重复点加号、拒绝代改、同时输入保留及手机效果 |
+| 连接诊断 | 本次重启捕获 IPv4 TCP ETIMEDOUT，随后自动重连取得 HTTP 101；可定位为握手前 TCP 超时，具体网络设备/路由原因仍未确认 |
+| 边界 | 仅指定测试群，受控本机保存；其他群、生产部署及工作日 10:00 调度均未启用 |
 
-证据见 [本人行验收摘要](docs/MEETING_ACCEPTANCE.md)。User 要求“不要测试，直接让我验收，边验边改”后，不再追加自动测试或模拟交互。Subagents: none。
+详见 [脱敏验收记录](docs/MEETING_ACCEPTANCE.md)。User 要求“不要测试，直接让我验收，边验边改”后不再追加自动测试或模拟交互。Subagents: none。

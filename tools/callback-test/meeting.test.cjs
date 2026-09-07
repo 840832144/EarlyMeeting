@@ -15,14 +15,14 @@ test('pinned SDK token + resource adapter preserves message and partial-element 
     ?{code:0,tenant_access_token:'offline-token-only',expire:100}:{code:0,data:{card_id:'fixture'}};}};
   const api=createApi({...config,appId:'cli_fixture_sdk'},Lark,transport);
   await api.createCard(meetingCard());await api.sendCard('fixture','offline-uuid');
-  await api.updateRow('fixture',{kind:'add',uuid:'offline-add',sequence:1,row:{id:'r123456789abc'}},{tag:'form'});
+  await api.updateRow('fixture',{kind:'add',uuid:'offline-add',sequence:1,row:{id:'r123456789abc',section:'planning'}},{tag:'form'});
   await api.updateRow('fixture',{kind:'save',uuid:'offline-save',sequence:2,row:{id:'r123456789abc'}},{tag:'form'});
   assert.ok(requests.some(r=>r.url.includes('/auth/')));
   assert.ok(requests.every(r=>r.timeout===8000));
   const message=requests.find(r=>r.url.endsWith('/im/v1/messages'));
   assert.equal(message.data.receive_id,config.chatId);
   assert.deepEqual(JSON.parse(message.data.content),{type:'card',data:{card_id:'fixture'}});
-  const add=requests.find(r=>r.data?.target_element_id==='add_my_row');
+  const add=requests.find(r=>r.data?.target_element_id==='add_planning');
   assert.equal(add.data.type,'insert_before');assert.equal(add.data.sequence,1);
   const saveRequest=requests.find(r=>r.method==='PUT');assert.equal(saveRequest.data.sequence,2);
   assert.ok(saveRequest.url.endsWith('/elements/r123456789abc'));
@@ -37,25 +37,25 @@ function fixture(t) {
   const api={createCard:async card=>{calls.push({method:'create',card});return {code:0,data:{card_id:'fixture_card'}};},
     sendCard:async(card,uuid)=>{calls.push({method:'send',card,uuid});return {code:0,data:{message_id:'om_fixture',chat_id:config.chatId,msg_type:'interactive'}};},
     updateRow:async(card,p,element)=>{calls.push({method:p.kind,card,p,element});return {code:0};},
-    updateLayout:async()=>({code:0}),departmentForOwner:async()=>({status:'ok',name:'虚构部门',code:0})};
+    updateLayout:async()=>({code:0})};
   const service=new MeetingService(config,store,api,line=>logs.push(line),{delay:0});
   return {directory,store,api,service,calls,logs};
 }
 let eventSequence=0;
-function action(owner='ou_alpha',value={op:'add'},form) {
+function action(owner='ou_alpha',value={op:'add',section:'planning'},form) {
   return {header:{event_id:'fixture_'+ ++eventSequence},event:{operator:{open_id:owner},
     context:{open_chat_id:config.chatId,open_message_id:'om_fixture'},
     action:{tag:'button',value,form_value:form},token:'do-not-save-callback-token'}};
 }
-function save(row,owner=row.owner,content='虚构晨会内容',role='策划') {
+function save(row,owner=row.owner,content='虚构晨会内容') {
   return action(owner,{op:'save',row:row.id,revision:row.revision},
-    {[`role_${row.id}`]:role,[`content_${row.id}`]:content});
+    {[`content_${row.id}`]:content});
 }
 async function submit(f,payload){const reply=f.service.handle(payload);await f.service.queue;return reply;}
 
 test('empty card, two simultaneous owners, repeated plus, independent full-form saves',async t=>{
   const f=fixture(t);assert.equal(await f.service.prepare(),true);
-  assert.equal(f.calls[0].card.body.elements.find(e=>e.tag==='form').elements.filter(e=>/^r[a-f0-9]{12}$/.test(e.element_id||'')).length,0);
+  assert.equal(f.calls[0].card.body.elements.filter(e=>e.tag==='form').length,0);
   const first=action();f.service.handle(first);f.service.handle(first);
   f.service.handle(action('ou_beta'));await f.service.queue;
   assert.equal(f.store.get().rows.length,2);
@@ -64,11 +64,11 @@ test('empty card, two simultaneous owners, repeated plus, independent full-form 
   let rows=f.store.get().rows;
   f.service.handle(save(rows[0]));f.service.handle(save(rows[1],'ou_beta','虚构程序工作','程序'));
   await f.service.queue;rows=f.store.get().rows;
-  assert.deepEqual(rows.map(r=>[r.department,r.content,r.revision]),[['虚构部门','虚构晨会内容',1],['虚构部门','虚构程序工作',1]]);
+  assert.deepEqual(rows.map(r=>[r.content,r.revision]),[['虚构晨会内容',1],['虚构程序工作',1]]);
   for(const call of f.calls.filter(c=>['add','save'].includes(c.method))){
     assert.equal(call.card,'fixture_card');assert.equal(call.element.element_id,call.p.row.id);
-    assert.equal(call.element.tag,'column_set');
-    const fields=call.element.columns.flatMap(c=>c.elements);
+    assert.equal(call.element.tag,'form');
+    const fields=call.element.elements[0].columns.flatMap(c=>c.elements);
     assert.equal(fields.filter(e=>e.tag==='input').length,1);
     assert.equal(fields.at(-1).form_action_type,'submit');
   }
@@ -158,6 +158,6 @@ test('logs exclude business text and identities; disk has only submitted fields 
   const disk=fs.readFileSync(path.join(f.directory,'meeting-state.json'),'utf8');
   assert.doesNotMatch(disk,/never-store-raw-event|callback-token|appSecret|never-logged-fixture/);
   assert.doesNotMatch(f.logs.join('\n'),/fiction-only|ou_alpha|oc_fixture|om_fixture|fixture_card/);
-  assert.equal(f.calls.find(c=>c.method==='save').element.columns[2].elements[0].default_value,'<script>fiction-only</script>');
+  assert.equal(f.calls.find(c=>c.method==='save').element.elements[0].columns[1].elements[0].default_value,'<script>fiction-only</script>');
   await f.service.stop();assert.equal(f.service.handle(action()).toast.type,'warning');
 });

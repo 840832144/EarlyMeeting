@@ -1,6 +1,6 @@
 'use strict';
 const {randomUUID,randomBytes}=require('node:crypto');
-const {meetingCard,rowElement,cardBudget,MAX_ROWS,MAX_ROLE,MAX_CONTENT}=require('./meeting-card.cjs');
+const {meetingCard,rowElement,cardBudget,MAX_ROWS,MAX_CONTENT,SECTIONS}=require('./meeting-card.cjs');
 const {hash}=require('./meeting-store.cjs');
 const {diagnosis}=require('./probe.cjs');
 const toast=(content,type='info')=>({toast:{type,content}});
@@ -12,16 +12,6 @@ class MeetingService {
     this.queue=Promise.resolve();this.stopped=false;this.queued=0;this.fault=false;
   }
   record(code,extra=''){this.output(`[${code}]${extra?' '+extra:''}`);}
-  async department(owner) {
-    try {
-      const result=await this.api.departmentForOwner(owner);
-      if(['ok','empty'].includes(result.status)&&typeof result.name==='string') {
-        this.record('DEPARTMENT_RESOLVED');return {department:result.name,departmentStatus:result.status};
-      }
-      this.record('DEPARTMENT_UNAVAILABLE',`code=${Number.isInteger(result.code)?result.code:0}`);
-    }catch(e){this.record('DEPARTMENT_UNAVAILABLE',diagnosis(e,'CALLBACK'));}
-    return {department:'',departmentStatus:'unavailable'};
-  }
   async prepare() {
     let s=this.store.get();
     if(this.now()-s.createdAt>=13*24*60*60*1000)throw new Error('CARD_EXPIRED_REVIEW');
@@ -49,20 +39,22 @@ class MeetingService {
     }else this.record('MEETING_RESUMED',`same_message=true; rows=${s.rows.length}`);
     if(s.pending)await this.flush();
     s=this.store.get();
-    if(!s.pending && (s.layoutVersion!==3 || s.rows.some(r=>r.departmentStatus==='unavailable'))) {
+    if(!s.pending && s.layoutVersion!==4) {
       if(!s.layoutPending) {
-        const rows=[];
-        for(const previous of s.rows){
-          const {role,...row}=previous;
-          rows.push({...row,...await this.department(row.owner)});
-        }
+        // The only live legacy row was entered as 策划 by the User. Never infer
+        // section from a person's identity or unknown department for bulk migration.
+        if(s.rows.length>1 && s.rows.some(r=>!r.section))throw new Error('SECTION_ASSIGNMENT_REQUIRED');
+        const rows=s.rows.map(previous=>{
+          const {role,department,departmentStatus,...row}=previous;
+          return {...row,section:row.section||(role==='程序'?'engineering':'planning')};
+        });
         s.rows=rows;s.layoutPending={uuid:randomUUID(),sequence:s.sequence+1};this.store.put(s);
       }
       let reply;
       try{reply=await this.api.updateLayout(s.cardId,s.layoutPending,meetingCard(s.rows));}
       catch(e){this.record('LAYOUT_UNCONFIRMED',diagnosis(e,'CALLBACK'));return false;}
       if(reply?.code!==0){this.record('LAYOUT_UNCONFIRMED',diagnosis(reply,'CALLBACK'));return false;}
-      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=3;this.store.put(s);
+      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=4;this.store.put(s);
       this.record('LAYOUT_UPDATED',`same_message=true; rows=${s.rows.length}`);
     }
     return !this.store.get().pending;
@@ -83,7 +75,11 @@ class MeetingService {
     const nonce=typeof eventId==='string'?eventId:e.token;
     if(typeof nonce!=='string'||!nonce||nonce.length>2048)return {error:'缺少回调防重标识，请重新点击。'};
     const request={kind:value.op,owner:e.operator.open_id,
-      event:hash(JSON.stringify([state.messageId,nonce,value.op,value.row||'']))};
+      event:hash(JSON.stringify([state.messageId,nonce,value.op,value.row||'',value.section||'']))};
+    if(value.op==='add') {
+      if(!Object.hasOwn(SECTIONS,value.section||''))return {error:'请选择策划或程序区域下的加号。'};
+      request.section=value.section;
+    }
     if(value.op==='save') {
       const row=state.rows.find(r=>r.id===value.row);
       if(!row||row.owner!==request.owner)return {error:'只能保存自己创建的那一行。'};
@@ -104,7 +100,8 @@ class MeetingService {
     if(s.events.includes(request.event)){this.record('EVENT_DUPLICATE');return toast('该次操作已处理。');}
     if(s.pending)return toast('上次更新仍待确认，请先检查接收程序。','warning');
     if(request.kind==='add' && s.rows.some(r=>r.owner===request.owner)) {
-      this.record('ROW_EXISTS',`rows=${s.rows.length}`);return toast('你已经有一行了，请在已有行填写或修改。');
+      const existing=s.rows.find(r=>r.owner===request.owner);
+      this.record('ROW_EXISTS',`rows=${s.rows.length}`);return toast(`你已经在${SECTIONS[existing.section]}区有一行了，请在已有行填写或修改。`);
     }
     if(request.kind==='add' && s.rows.length>=MAX_ROWS)return toast('本轮卡片已满 20 人，请联系维护者。','warning');
     if(request.kind==='save' && !cardBudget(s.rows.map(r=>r.id===request.row?
@@ -127,13 +124,11 @@ class MeetingService {
     if(request.kind==='add') {
       if(s.rows.some(r=>r.owner===request.owner)){this.record('ROW_EXISTS',`rows=${s.rows.length}`);return;}
       if(s.rows.length>=MAX_ROWS){this.record('ROW_LIMIT');return;}
-      row={id:'r'+randomBytes(6).toString('hex'),owner:request.owner,content:'',revision:0,
-        ...await this.department(request.owner)};
+      row={id:'r'+randomBytes(6).toString('hex'),owner:request.owner,section:request.section,content:'',revision:0};
     }else{
       const previous=s.rows.find(r=>r.id===request.row);
       if(!previous||previous.owner!==request.owner||previous.revision!==request.revision){this.record('STALE_SAVE_REJECTED');return;}
       row={...previous,content:request.content,revision:previous.revision+1};
-      if(row.departmentStatus==='unavailable')Object.assign(row,await this.department(row.owner));
     }
     const nextRows=request.kind==='add'?[...s.rows,row]:s.rows.map(r=>r.id===row.id?row:r);
     if(!cardBudget(nextRows).valid){this.record('CARD_SIZE_LIMIT');return;}

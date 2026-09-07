@@ -2,13 +2,14 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
-const {MAX_ROWS,MAX_CONTENT,MAX_ROLE}=require('./meeting-card.cjs');
+const {MAX_ROWS,MAX_CONTENT,SECTIONS}=require('./meeting-card.cjs');
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 function binding(config){return hash(JSON.stringify([config.appId,config.chatId]));}
 const clone = value => JSON.parse(JSON.stringify(value));
 function validRow(row) {
   return row && /^r[a-f0-9]{12}$/.test(row.id) && /^ou_[A-Za-z0-9_-]{1,100}$/.test(row.owner) &&
-    (row.role===undefined||(typeof row.role==='string' && row.role.length<=MAX_ROLE)) &&
+    (row.role===undefined||(typeof row.role==='string' && row.role.length<=24)) &&
+    (row.section===undefined||Object.hasOwn(SECTIONS,row.section)) &&
     (row.department===undefined||(typeof row.department==='string' && row.department.length<=160)) &&
     (row.departmentStatus===undefined||['ok','empty','unavailable'].includes(row.departmentStatus)) &&
     typeof row.content==='string' && row.content.length<=MAX_CONTENT &&
@@ -42,7 +43,7 @@ function createStore(directory,config) {
   if(!fs.statSync(directory).isDirectory())throw new Error('LOCAL_DIRECTORY_REQUIRED');
   const file=path.join(directory,'meeting-state.json');
   const fingerprint=binding(config);
-  const initial=()=>({version:1,layoutVersion:3,binding:fingerprint,stage:'new',createdAt:Date.now(),
+  const initial=()=>({version:1,layoutVersion:4,binding:fingerprint,stage:'new',createdAt:Date.now(),
     sequence:0,rows:[],events:[],pending:null});
   let current=fs.existsSync(file)?validate(JSON.parse(fs.readFileSync(file,'utf8')),fingerprint):initial();
   return {get:()=>clone(current),
