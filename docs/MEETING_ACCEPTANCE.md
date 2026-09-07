@@ -6,6 +6,8 @@
 
 ## 最新增量：本人删除、醒目标题与逐日调度
 
+同轮新增今日交付：User 明确卡片三部分为策划、程序、今日交付；今日交付为全群共用文本框，编辑向群成员开放。v11 迁移前核对无待确认操作，保留现有两行。实际 STOP_VERIFIED、HTTP 101 / CONNECTED、SCHEDULE_CONFIGURED time=09:45，MEETING_RESUMED rows=2 / LAYOUT_UPDATED same_message=true / MEETING_READY。未新发消息，未自动提交或清空，新增共享交付回调尚未冒称实测通过；由 User 直接使用反馈。
+
 最新 User 结论：“这回没问题了”，记录当前 UI 用户验收通过；正式代码 Review 仍保留。时间改为工作日北京时间 09:45，本机配置与代码一致。实际 STOP_VERIFIED 后重启取得 HTTP 101 / CONNECTED、SCHEDULE_CONFIGURED groups=1 / scheduled=1 / time=09:45、MEETING_RESUMED rows=2 / MEETING_READY；未再发消息，也没有改动卡片内容。未运行自动测试或模拟操作。10:15 指定名单提醒已由 User 暂停，未加入实现；仅查阅过官方接口文档，没有实际读取群成员或收集名单。
 
 最新 v10 新行提醒：revision=0 时按钮为 danger 红字“未提交”，成功持久化后 revision 增加、变为 primary 蓝字“提交”。实际更新原消息时保留两行，HTTP 101 / CONNECTED、LAYOUT_UPDATED / MEETING_READY 均成功；没有模拟创建或提交，提醒由 User 直接使用。红字不是已提交行未发送草稿的检测器。

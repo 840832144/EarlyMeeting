@@ -15,6 +15,10 @@ function validRow(row) {
     typeof row.content==='string' && row.content.length<=MAX_CONTENT &&
     Number.isSafeInteger(row.revision) && row.revision>=0;
 }
+function validDelivery(delivery) {
+  return delivery && typeof delivery.content==='string' && delivery.content.length<=MAX_CONTENT &&
+    Number.isSafeInteger(delivery.revision) && delivery.revision>=0;
+}
 function validate(state,fingerprint) {
   if (!state || state.version!==1 || state.binding!==fingerprint ||
       !['new','creating','created','sending','sent'].includes(state.stage) ||
@@ -30,7 +34,9 @@ function validate(state,fingerprint) {
   if (['sending','sent'].includes(state.stage) &&
       (!/^[a-f0-9-]{36}$/.test(state.sendUuid||'') || !Number.isFinite(state.sendAt))) throw new Error('LOCAL_STATE_INVALID');
   if(state.stage==='sent' && !/^om_[A-Za-z0-9_-]+$/.test(state.messageId||''))throw new Error('LOCAL_STATE_INVALID');
-  if(state.pending && (!['add','save','delete'].includes(state.pending.kind) || !validRow(state.pending.row) ||
+  if(state.delivery!==undefined && !validDelivery(state.delivery))throw new Error('LOCAL_STATE_INVALID');
+  if(state.pending && (!(['add','save','delete'].includes(state.pending.kind)?validRow(state.pending.row):
+      ['save_delivery','clear_delivery'].includes(state.pending.kind)&&validDelivery(state.pending.delivery)) ||
     state.pending.sequence!==state.sequence+1 || !/^[a-f0-9-]{36}$/.test(state.pending.uuid||'') ||
     !/^[a-f0-9]{64}$/.test(state.pending.event||'')))throw new Error('LOCAL_STATE_INVALID');
   if(state.layoutPending && (state.layoutPending.sequence!==state.sequence+1 ||
@@ -43,8 +49,8 @@ function createStore(directory,config) {
   if(!fs.statSync(directory).isDirectory())throw new Error('LOCAL_DIRECTORY_REQUIRED');
   const file=path.join(directory,'meeting-state.json');
   const fingerprint=binding(config);
-  const initial=()=>({version:1,layoutVersion:10,binding:fingerprint,stage:'new',createdAt:Date.now(),
-    sequence:0,rows:[],events:[],pending:null});
+  const initial=()=>({version:1,layoutVersion:11,binding:fingerprint,stage:'new',createdAt:Date.now(),
+    sequence:0,rows:[],delivery:{content:'',revision:0},events:[],pending:null});
   let current=fs.existsSync(file)?validate(JSON.parse(fs.readFileSync(file,'utf8')),fingerprint):initial();
   return {get:()=>clone(current),
     put(next) {

@@ -17,6 +17,8 @@ function createApi(config,Lark,transport=Lark.defaultHttpInstance) {
     createCard:card=>call(client.cardkit.v1.card.create({data:{type:'card_json',data:JSON.stringify(card)}})),
     updateLayout:(cardId,p,card)=>call(client.cardkit.v1.card.update({path:{card_id:cardId},
       data:{uuid:p.uuid,sequence:p.sequence,card:{type:'card_json',data:JSON.stringify(card)}}})),
+    updateDelivery:(cardId,p,element)=>call(client.cardkit.v1.cardElement.update({path:{card_id:cardId,element_id:'delivery_form'},
+      data:{uuid:p.uuid,sequence:p.sequence,element:JSON.stringify(element)}})),
     sendCard:(cardId,uuid)=>call(client.im.message.create({params:{receive_id_type:'chat_id'},
       data:{receive_id:config.chatId,msg_type:'interactive',uuid,
         content:JSON.stringify({type:'card',data:{card_id:cardId}})}})),

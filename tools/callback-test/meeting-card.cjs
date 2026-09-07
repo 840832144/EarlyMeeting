@@ -40,18 +40,40 @@ function sectionElements(section,rows) {
   ];
 }
 
-function meetingCard(rows = []) {
+function deliveryElement(delivery={content:'',revision:0}) {
+  const submitted=Boolean(delivery.content.trim());
+  return {tag:'form',element_id:'delivery_form',name:'delivery_form',...flow,elements:[
+    {tag:'input',name:'delivery_content',width:'428px',required:false,margin:'0px',
+      input_type:'multiline_text',rows:1,auto_resize:true,max_length:MAX_CONTENT,
+      default_value:delivery.content},
+    {tag:'button',name:'delivery_submit',type:submitted?'primary':'danger',size:'small',margin:'0px',
+      text:plain(submitted?'提交':'未提交'),form_action_type:'submit',
+      behaviors:callback({op:'save_delivery',revision:delivery.revision})},
+    {tag:'button',name:'delivery_delete',type:'default',size:'small',margin:'0px',
+      text:plain('删除'),form_action_type:'submit',
+      behaviors:callback({op:'clear_delivery',revision:delivery.revision})},
+  ]};
+}
+
+function meetingCard(rows = [],delivery) {
   return {schema:'2.0',config:{update_multi:true,enable_forward:false},
     header:{template:'blue',title:plain('今日晨会记')},
     body:{vertical_spacing:'4px',elements:[
       ...sectionElements('planning',rows),
       {tag:'hr'},
       ...sectionElements('engineering',rows),
+      {tag:'hr'},
+      {tag:'markdown',content:'**今日交付**',text_size:'heading-1',margin:'8px 0px 0px 0px'},
+      {tag:'column_set',horizontal_spacing:'8px',flex_mode:'none',margin:'0px',columns:[
+        {tag:'column',width:'428px',elements:[{tag:'markdown',content:'**交付内容**'}]},
+        {tag:'column',width:'92px',elements:[{tag:'markdown',content:'**操作**'}]},
+      ]},
+      deliveryElement(delivery),
     ]}};
 }
 
-function cardBudget(rows) {
-  const card=meetingCard(rows);
+function cardBudget(rows,delivery) {
+  const card=meetingCard(rows,delivery);
   let components=0;
   function walk(x) {if(!x||typeof x!=='object')return;if(typeof x.tag==='string')components++;
     for(const value of Object.values(x))walk(value);}
@@ -59,4 +81,4 @@ function cardBudget(rows) {
   const bytes=Buffer.byteLength(JSON.stringify(card));
   return {components,bytes,valid:rows.length<=MAX_ROWS && components<=200 && bytes<=30000};
 }
-module.exports={meetingCard,rowElement,cardBudget,MAX_ROWS,MAX_CONTENT,SECTIONS};
+module.exports={meetingCard,rowElement,deliveryElement,cardBudget,MAX_ROWS,MAX_CONTENT,SECTIONS};
