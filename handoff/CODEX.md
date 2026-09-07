@@ -15,7 +15,9 @@
 
 本 Gate 已完成：AI-Workspace main@1dd6de3 完整 Registry 为 13 canonical / 0 collision / valid；全部远端目标防重无同目标 Task；独立 worktree 由 Approved Candidate / remote-CAS allocator 分配 TASK-0028，重建后为 14 canonical / 0 collision / valid。准备 commit a68b663 已推送；reservation pending-main，Review 后才合并并 finalize。没有复用其他任务预约。
 
-## 当前两区域实现与唯一下一步
+## 当前三区域实现与唯一下一步
+
+正式群接入准备：本机 groups.json 已追加关闭的“正式群1”“正式群2”填写项，测试群保留，最外层“编辑群配置.cmd”可直接打开。User 正在准备正式群1，群2只预留；User 本机填写群 ID 并将现有机器人加入群，确认后按下一工作日 2026-09-08 09:45 开始。尚未启用或向正式群发送，真实群标识不进入仓库。
 
 最新实现 v11：策划、程序、今日交付三个同级区域。今日交付为全群共用的一个文本框，内容/操作两列，所有群成员可提交或清空，个人行归属检查不变。共享内容与 revision 随按群/日期状态保存；独立版本检查、相同意图恢复与串行更新沿用现有机制。现场 HTTP 101 / CONNECTED、time=09:45、MEETING_RESUMED rows=2 / LAYOUT_UPDATED / MEETING_READY，原两行和消息保留，未模拟提交或清空。新增区直接供 User 使用，正式交付等待 Review。Subagents: none。
 

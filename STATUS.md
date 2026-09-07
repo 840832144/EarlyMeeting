@@ -4,7 +4,7 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| 当前入口 | [两区域一键操作](tools/callback-test/MEETING.md)、[当前方向](docs/CURRENT_DIRECTION.md)、[Handoff](handoff/CODEX.md) |
+| 当前入口 | [晨会卡片一键操作](tools/callback-test/MEETING.md)、[当前方向](docs/CURRENT_DIRECTION.md)、[Handoff](handoff/CODEX.md) |
 | 正式准备 | Registry 14 canonical / 0 collision / valid；同目标仅 TASK-0028，续接未另占号，reservation pending-main |
 | 本机 | 桌面 EarlyMeeting-local-callback-test；Node 24.20.0 / SDK 1.73.3；沿用本机 JSON，数据目录 ACL 受限 |
 | 现有资产 | 原应用、原模板及模板发送入口保留；动态布局由 EarlyMeeting 构建 |
@@ -17,7 +17,7 @@
 | 当前进程 | HTTP 101 / CONNECTED，单进程接收并调度；无自动测试或系统自启 |
 | 使用与收尾 | User 明确“这回没问题了”，卡片 UI 验收通过；不追加复杂测试或验收清单，正式代码等待 Review |
 | 连接诊断 | 本次重启捕获 IPv4 TCP ETIMEDOUT，随后自动重连取得 HTTP 101；可定位为握手前 TCP 超时，具体网络设备/路由原因仍未确认 |
-| 定时与群 | 测试群 scheduled=1；周一至周五北京时间 09:45 每群每天一张，按群/日期防重；正式群尚未接入 |
+| 定时与群 | 测试群 scheduled=1；周一至周五北京时间 09:45 每群每天一张，按群/日期防重；正式群1准备本机接入，正式群2只预留，均关闭；等待 User 填 ID 并确认机器人入群 |
 | 催交提醒 | 10:15 按指定名单提醒已由 User 暂停；未实施、未启用，未收集名单或读取群成员 |
 | 实测边界 | 实际 SCHEDULE_CONFIGURED time=09:45 / CONNECTED / MEETING_READY；保留原消息两行，未来准点触发及多群正式发送未到时实测 |
 

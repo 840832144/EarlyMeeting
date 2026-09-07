@@ -33,7 +33,7 @@
 
 电脑关机、睡眠、断网或程序停止时无法准点发送或处理填写。没有设置 Windows 自启、系统服务或改变全局网络配置。原测试卡片已归入今天，不因启用定时再补发；下一次正常发送为 **2026-09-08 09:45**。
 
-多群配置在本机 **.local/meeting/groups.json**，凭据仍在 **.local/config.json**。修改后停止并重新启动。参考 [groups.example.json](groups.example.json)，示例正式群默认关闭，不包含真实标识。
+双击最外层 **编辑群配置.cmd** 即可打开本机 **.local/meeting/groups.json**，凭据仍在 **.local/config.json**。已预留“正式群1”“正式群2”，默认关闭；只把群 ID 填入对应 `chat_id` 引号内，不覆盖测试群。先把现有机器人加入目标群，再启用该项并确认开始日期；修改后停止并重新启动。参考 [groups.example.json](groups.example.json)，示例不包含真实标识。
 
 | 字段 | 含义 |
 | --- | --- |
