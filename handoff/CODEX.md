@@ -28,6 +28,8 @@
 
 ## 原接管 Gate（已执行，保留依据）
 
+本轮 Review 追加需求：User 明确要求空卡片通过“＋添加我的一行”动态新增本人行，姓名自动带入，职位与内容在该行填写和保存；替换此前底部统一填写区建议。规格见 [后续产品目标澄清](../docs/CURRENT_DIRECTION.md#后续产品目标澄清)。已防重并续接既有 Roadmap Backlog，没有新建 Task、修改线上模板或启用业务保存/共享更新。示意仅用于确认交互，真实动态行及多人并发仍需实测。Subagents: none。
+
 1. 安全同步 AI-Workspace 与 EarlyMeeting 最新 main，读取 Global/Project AGENTS、最新 Task/Registry、Status、Handoff 和本文件；保护未提交修改。确认本机是否为 User 实际运行测试的 Windows 环境。
 2. 旧 PR #1/#2 及其交接已被 User 作废，不按旧 MVP 继续，也不把「Codex 继续暂停」当成当前指令。检查旧 PR 的 Superseded/closed 状态；只引用历史代码，不直接合并旧分支。
 3. 运行最新 Task Registry scan/validate，完成目标防重和有效 project_key 核对。已有同目标 active Task 时按治理规则更新/继续；没有时在独立非 main linked worktree 通过 remote-CAS allocator 合法登记。禁止猜编号、手改 Registry 或跳过冲突 Gate。
