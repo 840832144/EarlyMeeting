@@ -7,6 +7,8 @@
 - [当前方向与范围](docs/CURRENT_DIRECTION.md)
 - [状态与证据边界](STATUS.md)
 - [Codex 接管与正式任务准备](handoff/CODEX.md)
+- [TASK-0028 本机一键操作说明](tools/callback-test/README.md)
+- [本机实测摘要](docs/CALLBACK_VALIDATION.md)
 
 2026-09-07 User 明确决定：让 Codex 介入，之前 Git 内容作废，先推进当前本机回调方向。此前 PR #1 的开发案及 PR #2 的独立诊断包交付路线均不再作为执行依据；旧提交仅保留历史和可审查的代码参考，不删除历史、不强推、不清空用户本机目录。
 

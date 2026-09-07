@@ -5,6 +5,12 @@
 - 文档性质：已批准的方向与任务准备规格；不是已分配编号的 canonical Task。
 - 当前主线：保留飞书现有资产，由 Codex 在目标本机排查连接并接通卡片提交。
 
+## 2026-09-07 Codex 执行更新
+
+已通过 AI-Workspace Registry / 目标防重 / remote-CAS allocator 正式登记 [TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)。后文「未分配编号」描述的是接管前基线，当前执行入口以此 Task 为准。
+
+User 本轮追加授权：凭据与测试群配置填入仅本机 `.local/config.json`，替代反复交互输入；文件限制当前用户与 SYSTEM，排除 Git，不读取到模型输出、不上传或导入旧 .env。配置仅供接收程序使用，不改变应用、模板或发送流程。实施状态见 [实测摘要](CALLBACK_VALIDATION.md)，操作入口见 [本机使用说明](../tools/callback-test/README.md)。
+
 ## 1. 本次变更决定
 
 User 明确要求「让 Codex 介入，之前 Git 里的内容作废，方向改成先现在这个」。此前暂停 Codex 的决定，改为允许 Codex 接管本轮本机回调联调；不是恢复旧完整 MVP 开发。
