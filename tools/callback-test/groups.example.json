@@ -23,7 +23,9 @@
       "chat_id": "",
       "enabled": false,
       "schedule": false,
-      "start_date": "2026-09-08"
+      "start_date": "2026-09-08",
+      "row_permissions": {"submit": "owner", "delete": "owner"},
+      "prefill": {"enabled": false, "planning": [], "engineering": []}
     }
   ]
 }

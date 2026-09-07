@@ -2,9 +2,11 @@
 
 - Task：TASK-0028；日期：2026-09-07。
 - 指定测试群，本机持有数据，同一条卡片；User 直接验收、边验边改。
-- 保留现有应用、原模板及发送入口；最新批准启用测试群工作日 10:00 定时。Subagents: none。
+- 保留现有应用、原模板及发送入口；测试群及两个正式群工作日 09:45 定时，各群独立。Subagents: none。
 
 ## 最新增量：本人删除、醒目标题与逐日调度
+
+正式群2预填准备：User 确认仅群2全员可提交/删除，提供策划3人、程序6人名单。新状态支持预建空行，首次创建前将行与发送意图持久化；重启复用原状态，姓名仍属名单原人，其他群保留 owner 权限。已做四个脚本的语法核对和 Git diff 检查；未新增自动测试、未模拟提交/删除、未提前发正式群卡片。只读匹配真实群成员返回 99991672，实际 required_scopes 为 im:chat:readonly / im:chat，仅请求 User 开通只读项，未返回或保存完整成员列表。部署后曾 TCP ETIMEDOUT，自动重连取得 HTTP 101 / CONNECTED、groups=3 scheduled=3，GROUP_1/2 submit=owner delete=owner，GROUP_3 submit=all delete=all；测试群原消息 rows=2 恢复。三个群 prefill=false，名单待匹配，不冒称已预建成功。Subagents: none。
 
 正式群2启用（2026-09-07）：User 在本机填写并回复“添加了”。已有两个群 ID 保持一致，唯一新增群 ID 格式及防重有效；User 修改的本机群名保留。无待确认操作，STOP_VERIFIED 后启用群2，start_date=2026-09-08。实际 HTTP 101 / CONNECTED / SCHEDULE_CONFIGURED groups=3 scheduled=3 time=09:45，测试群原消息 rows=2 / MEETING_READY；今天未向两个正式群补发。没有新增自动测试、模拟交互或成员查询；未来正式群发卡与准点触发未到时实测。原始配置、群名称及 ID 均不进入仓库。Subagents: none。
 

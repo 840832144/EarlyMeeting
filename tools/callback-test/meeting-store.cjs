@@ -49,8 +49,13 @@ function createStore(directory,config) {
   if(!fs.statSync(directory).isDirectory())throw new Error('LOCAL_DIRECTORY_REQUIRED');
   const file=path.join(directory,'meeting-state.json');
   const fingerprint=binding(config);
+  // Only a new group/day state gets roster rows. Once persisted, restarts and
+  // retries keep that snapshot, including any rows the group has deleted.
   const initial=()=>({version:1,layoutVersion:11,binding:fingerprint,stage:'new',createdAt:Date.now(),
-    sequence:0,rows:[],delivery:{content:'',revision:0},events:[],pending:null});
+    sequence:0,rows:config.prefill?.enabled?Object.keys(SECTIONS).flatMap(section=>
+      config.prefill[section].map(member=>({id:'r'+crypto.randomBytes(6).toString('hex'),
+        owner:member.open_id,section,content:'',revision:0}))):[],
+    delivery:{content:'',revision:0},events:[],pending:null});
   let current=fs.existsSync(file)?validate(JSON.parse(fs.readFileSync(file,'utf8')),fingerprint):initial();
   return {get:()=>clone(current),
     put(next) {

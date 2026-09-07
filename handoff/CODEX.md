@@ -17,6 +17,8 @@
 
 ## 当前三区域实现与唯一下一步
 
+当前增量：正式群2按 User 指定的策划3人、程序6人预建新卡片空行；仅群2开放任意行提交和删除，其他群仍 owner。代码及本机 row_permissions=all/all 已部署；预填开关暂时关闭，官方只读成员接口实际返回 99991672，需要 im:chat:readonly，正在等待 User 开通。人员姓名及目标群标识只在 .local/meeting/prefill-request.json，不在 Git；唯一匹配成功后生成 prefill-resolved.json，再写入群2配置并启用。新名单不改已发送卡片，重启不重复建行；10:15 提醒继续暂停。只做语法/配置核对，没有模拟用户操作或新增自动测试。备份 .local/meeting/code-backup-before-prefill。Task In Progress。Subagents: none。
+
 两个正式群已启用：User 完成群2本机填写及添加后，群2沿用群1规则 enabled=true / schedule=true / start_date=2026-09-08。重启后 HTTP 101 / CONNECTED、groups=3 / scheduled=3 / time=09:45，测试群原消息两行恢复；两个正式群明天开始，今天未补发。User 已修改本机显示群名，本次按旧配置的既有群 ID 排除并识别唯一新增群，保留用户命名，不依赖固定“正式群1/2”文字识别。10:15 提醒继续暂停。最外层“编辑群配置.cmd”可直接打开配置，真实群名及 ID 不进入仓库。未来准点发送未到时实测，Task 继续 Review。Subagents: none。
 
 最新实现 v11：策划、程序、今日交付三个同级区域。今日交付为全群共用的一个文本框，内容/操作两列，所有群成员可提交或清空，个人行归属检查不变。共享内容与 revision 随按群/日期状态保存；独立版本检查、相同意图恢复与串行更新沿用现有机制。现场 HTTP 101 / CONNECTED、time=09:45、MEETING_RESUMED rows=2 / LAYOUT_UPDATED / MEETING_READY，原两行和消息保留，未模拟提交或清空。新增区直接供 User 使用，正式交付等待 Review。Subagents: none。

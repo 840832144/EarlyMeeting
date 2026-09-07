@@ -13,14 +13,20 @@ class MeetingService {
     this.queue=Promise.resolve();this.stopped=false;this.queued=0;this.fault=false;
   }
   record(code,extra=''){this.output(`[${code}]${extra?' '+extra:''}`);}
+  canModify(row,actor,kind) {
+    return Boolean(row)&&(row.owner===actor||
+      (kind==='save'&&this.config.rowPermissions?.submit==='all')||
+      (kind==='delete'&&this.config.rowPermissions?.delete==='all'));
+  }
   async prepare() {
     let s=this.store.get();
     if(this.now()-s.createdAt>=13*24*60*60*1000)throw new Error('CARD_EXPIRED_REVIEW');
     if(s.stage==='creating')throw new Error('CARD_CREATE_UNCONFIRMED');
     if(s.stage==='new') {
+      if(!cardBudget(s.rows,s.delivery).valid)throw new Error('PREFILL_CARD_SIZE_LIMIT');
       s.stage='creating';this.store.put(s);
       let reply;
-      try {reply=await this.api.createCard(meetingCard());}
+      try {reply=await this.api.createCard(meetingCard(s.rows,s.delivery));}
       catch(e){this.record('CARD_CREATE_UNCONFIRMED',diagnosis(e,'SEND'));return false;}
       if(reply?.code!==0) {s.stage='new';this.store.put(s);
         this.record('CARD_CREATE_REJECTED',diagnosis(reply,'SEND'));return false;}
@@ -36,7 +42,7 @@ class MeetingService {
       if(reply?.code!==0 || reply.data?.chat_id!==this.config.chatId ||
         reply.data?.msg_type!=='interactive' || typeof reply.data?.message_id!=='string') {
         this.record('MESSAGE_SEND_UNCONFIRMED',diagnosis(reply,'SEND'));return false;}
-      s.messageId=reply.data.message_id;s.stage='sent';this.store.put(s);this.record('MEETING_SENT','same_message=true; rows=0');
+      s.messageId=reply.data.message_id;s.stage='sent';this.store.put(s);this.record('MEETING_SENT',`same_message=true; rows=${s.rows.length}`);
     }else this.record('MEETING_RESUMED',`same_message=true; rows=${s.rows.length}`);
     if(s.pending)await this.flush();
     s=this.store.get();
@@ -97,7 +103,7 @@ class MeetingService {
     }
     if(value.op==='save'||value.op==='delete') {
       const row=state.rows.find(r=>r.id===value.row);
-      if(!row||row.owner!==request.owner)return {error:'只能保存或删除自己创建的那一行。'};
+      if(!this.canModify(row,request.owner,value.op))return {error:'本群仅允许操作本人的行，或该行已删除。'};
       if(!Number.isSafeInteger(value.revision)||value.revision!==row.revision)
         return {error:'该行已更新，请使用最新卡片上的按钮。'};
       Object.assign(request,{row:row.id,revision:value.revision});
@@ -157,7 +163,7 @@ class MeetingService {
       row={id:'r'+randomBytes(6).toString('hex'),owner:request.owner,section:request.section,content:'',revision:0};
     }else{
       const previous=s.rows.find(r=>r.id===request.row);
-      if(!previous||previous.owner!==request.owner||previous.revision!==request.revision){this.record('STALE_SAVE_REJECTED');return;}
+      if(!this.canModify(previous,request.owner,request.kind)||previous.revision!==request.revision){this.record('STALE_SAVE_REJECTED');return;}
       row=request.kind==='delete'?previous:{...previous,content:request.content,revision:previous.revision+1};
     }
     const nextRows=request.kind==='add'?[...s.rows,row]:request.kind==='delete'

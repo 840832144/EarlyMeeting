@@ -3,6 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {createStore,binding,validate,hash}=require('./meeting-store.cjs');
 const {MeetingService}=require('./meeting-service.cjs');
+const {MAX_ROWS,SECTIONS}=require('./meeting-card.cjs');
 
 // Fixed UTC+8, independent of the Windows clock's display timezone.
 function beijing(now=Date.now()) {
@@ -26,6 +27,19 @@ function readGroups(directory,config) {
       !Number.isFinite(Date.parse(g.start_date+'T00:00:00Z'))||
       new Date(g.start_date+'T00:00:00Z').toISOString().slice(0,10)!==g.start_date)
       throw new Error('GROUP_CONFIG_INVALID');
+    if(g.row_permissions!==undefined && (!g.row_permissions ||
+      !['owner','all'].includes(g.row_permissions.submit) ||
+      !['owner','all'].includes(g.row_permissions.delete)))throw new Error('GROUP_PERMISSIONS_INVALID');
+    if(g.prefill!==undefined) {
+      const p=g.prefill;
+      if(!p||typeof p.enabled!=='boolean'||Object.keys(SECTIONS).some(section=>
+        !Array.isArray(p[section])||p[section].some(member=>!member||typeof member.open_id!=='string'||
+          !/^ou_[A-Za-z0-9_-]{1,100}$/.test(member.open_id||'')||
+          (member.name!==undefined&&typeof member.name!=='string'))))throw new Error('PREFILL_CONFIG_INVALID');
+      const members=Object.keys(SECTIONS).flatMap(section=>p[section]);
+      if(members.length>MAX_ROWS||new Set(members.map(m=>m.open_id)).size!==members.length||
+        (p.enabled&&members.length===0))throw new Error('PREFILL_ROSTER_INVALID');
+    }
   }
   const enabled=c.groups.filter(g=>g.enabled);
   if(new Set(enabled.map(g=>g.chat_id)).size!==enabled.length)throw new Error('GROUP_CONFIG_DUPLICATE');
@@ -59,6 +73,7 @@ class MeetingSchedule {
   }
   start() {
     this.output(`[SCHEDULE_CONFIGURED] groups=${this.groups.length}; scheduled=${this.groups.filter(g=>g.schedule).length}; weekdays=1-5; time=09:45; timezone=Asia/Shanghai`);
+    this.groups.forEach((g,index)=>this.output(`[GROUP_${index+1}] [GROUP_OPTIONS] prefill=${Boolean(g.prefill?.enabled)}; planning=${g.prefill?.planning.length||0}; engineering=${g.prefill?.engineering.length||0}; submit=${g.row_permissions?.submit||'owner'}; delete=${g.row_permissions?.delete||'owner'}`));
     this.timer=setInterval(()=>{void this.tick();},15000);
     void this.tick();
   }
@@ -78,7 +93,7 @@ class MeetingSchedule {
       if(this.stopped)return;
       const g=this.groups[i];
       if(this.active.has(g.chat_id))continue;
-      const config={...this.config,chatId:g.chat_id};
+      const config={...this.config,chatId:g.chat_id,prefill:g.prefill,rowPermissions:g.row_permissions};
       const dir=dayDirectory(this.directory,config,today.date);
       const exists=fs.existsSync(path.join(dir,'meeting-state.json'));
       const due=g.schedule&&today.weekday>=1&&today.weekday<=5&&today.minute>=9*60+45&&today.date>=g.start_date;
