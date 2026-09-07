@@ -39,7 +39,7 @@ class MeetingService {
     }else this.record('MEETING_RESUMED',`same_message=true; rows=${s.rows.length}`);
     if(s.pending)await this.flush();
     s=this.store.get();
-    if(!s.pending && s.layoutVersion!==5) {
+    if(!s.pending && s.layoutVersion!==6) {
       if(!s.layoutPending) {
         // The only live legacy row was entered as 策划 by the User. Never infer
         // section from a person's identity or unknown department for bulk migration.
@@ -54,7 +54,7 @@ class MeetingService {
       try{reply=await this.api.updateLayout(s.cardId,s.layoutPending,meetingCard(s.rows));}
       catch(e){this.record('LAYOUT_UNCONFIRMED',diagnosis(e,'CALLBACK'));return false;}
       if(reply?.code!==0){this.record('LAYOUT_UNCONFIRMED',diagnosis(reply,'CALLBACK'));return false;}
-      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=5;this.store.put(s);
+      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=6;this.store.put(s);
       this.record('LAYOUT_UPDATED',`same_message=true; rows=${s.rows.length}`);
     }
     return !this.store.get().pending;
@@ -116,7 +116,7 @@ class MeetingService {
       .catch(e=>{this.fault=true;this.record('MEETING_FAULT',diagnosis(e,'CALLBACK'));})
       .finally(()=>{this.queued--;});
     return toast(request.kind==='add'?'正在添加你的行，请稍候。':request.kind==='delete'
-      ?'正在删除本行；行消失后可在另一个区域重新添加。':'已接收，正在保存本行；完成后按钮会显示“已保存”。');
+      ?'正在删除本行；行消失后可在另一个区域重新添加。':'已接收，正在保存本行，请稍候。');
   }
   async apply(request) {
     if(this.fault)return;

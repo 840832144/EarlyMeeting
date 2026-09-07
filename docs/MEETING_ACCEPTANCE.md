@@ -6,6 +6,10 @@
 
 ## 最新增量：本人删除、醒目标题与逐日调度
 
+最新 UI 反馈后，改为 v6 紧凑布局：姓名、内容与右侧操作排列，“重新保存 / 删除本行”并排，内容框默认一行、行距 4px。User 取消补发，实际仅更新最近原消息。STOP_VERIFIED 后重启，真实 HTTP 101 / CONNECTED、MEETING_RESUMED rows=2 / LAYOUT_UPDATED same_message=true / MEETING_READY；两行保留，没有新消息发送。新 UI 由 User 直接查看，未运行自动测试。
+
+新增真实交互证据（北京时间）：17:25:41 ROW_DELETED rows=1；17:25:43 ROW_ADDED rows=2；17:25:53 及 17:26:28 ROW_SAVED rows=2 / fields=1。这些是 User 实际操作，证明本人删除后可重新添加并保存，未代用户模拟操作。未来 10:00 定时仍未到时实测。
+
 2026-09-07 User 认可两区效果，追加本人删除和标题放大加粗，并明确周一至周五北京时间 10:00、每群每天一张；正式群稍后再发，目前只配置测试群。实现 v0.4.0 / 布局 v5 已覆盖实际运行目录，代码备份仅在本机受限目录。
 
 真实证据：上一进程出现 ROW_ADDED rows=2 / ROW_SAVED fields=1；本次 STOP_VERIFIED 后迁移为按群/日期状态，DAILY_STATE_MIGRATED same_message=true / rows=2。启动曾再次捕获握手前 IPv4 ETIMEDOUT，自动重连后取得 HTTP 101 / CONNECTED。SCHEDULE_CONFIGURED groups=1 / scheduled=1；随后 MEETING_RESUMED rows=2 / LAYOUT_UPDATED same_message=true / MEETING_READY。保留同一消息和两行，未触发新消息发送。

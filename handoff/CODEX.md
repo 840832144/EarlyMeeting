@@ -17,6 +17,8 @@
 
 ## 当前两区域实现与唯一下一步
 
+最新 UI 增量：布局 v6 已热更新最近一条卡片，保留两行；“重新保存 / 删除本行”并排放右侧操作区域，内容框默认一行、记录间距 4px。采用每行水平根表单保留 20 行元素预算。User 已取消补发，本次未新发消息。真实 HTTP 101 / CONNECTED / LAYOUT_UPDATED / MEETING_READY；前次 User 的删除、再添加及保存已取得成功状态。新 UI 等 User 直接查看，不把条件式“没问题就通过”记作验收通过；不追加自动测试。代码备份在本机 .local/meeting/code-backup-compact-v04。Subagents: none。
+
 ### 当前交付 v0.4.0（优先于下方历史快照）
 
 User 已认可两区效果，追加本人删除、24px 加粗分区标题及多群工作日北京时间 10:00 每群每天一张。已按 Registry / 远端防重续接 TASK-0028；准备 commit AI-Workspace@96e5fa6。正式群尚未指定，本机仅测试群 enabled=1 / scheduled=1；Group JSON 与按群/日期状态位于受限 .local/meeting，应用密钥未复制。
