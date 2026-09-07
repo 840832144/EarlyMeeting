@@ -43,7 +43,7 @@ function createStore(directory,config) {
   if(!fs.statSync(directory).isDirectory())throw new Error('LOCAL_DIRECTORY_REQUIRED');
   const file=path.join(directory,'meeting-state.json');
   const fingerprint=binding(config);
-  const initial=()=>({version:1,layoutVersion:6,binding:fingerprint,stage:'new',createdAt:Date.now(),
+  const initial=()=>({version:1,layoutVersion:9,binding:fingerprint,stage:'new',createdAt:Date.now(),
     sequence:0,rows:[],events:[],pending:null});
   let current=fs.existsSync(file)?validate(JSON.parse(fs.readFileSync(file,'utf8')),fingerprint):initial();
   return {get:()=>clone(current),

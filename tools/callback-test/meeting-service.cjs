@@ -39,7 +39,7 @@ class MeetingService {
     }else this.record('MEETING_RESUMED',`same_message=true; rows=${s.rows.length}`);
     if(s.pending)await this.flush();
     s=this.store.get();
-    if(!s.pending && s.layoutVersion!==6) {
+    if(!s.pending && s.layoutVersion!==9) {
       if(!s.layoutPending) {
         // The only live legacy row was entered as 策划 by the User. Never infer
         // section from a person's identity or unknown department for bulk migration.
@@ -54,7 +54,7 @@ class MeetingService {
       try{reply=await this.api.updateLayout(s.cardId,s.layoutPending,meetingCard(s.rows));}
       catch(e){this.record('LAYOUT_UNCONFIRMED',diagnosis(e,'CALLBACK'));return false;}
       if(reply?.code!==0){this.record('LAYOUT_UNCONFIRMED',diagnosis(reply,'CALLBACK'));return false;}
-      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=6;this.store.put(s);
+      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=9;this.store.put(s);
       this.record('LAYOUT_UPDATED',`same_message=true; rows=${s.rows.length}`);
     }
     return !this.store.get().pending;
@@ -90,7 +90,7 @@ class MeetingService {
       const form=e.action.form_value;
       const content=form?.[`content_${row.id}`];
       if(typeof content!=='string'||!content.trim()||content.length>MAX_CONTENT)
-        return {error:`请填写晨会内容（${MAX_CONTENT}字内），再保存本行。`};
+        return {error:`请填写晨会内容（${MAX_CONTENT}字内），再提交。`};
       Object.assign(request,{row:row.id,revision:value.revision,content:content.trim()});
     }
     return request;

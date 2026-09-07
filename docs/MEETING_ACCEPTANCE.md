@@ -6,6 +6,10 @@
 
 ## 最新增量：本人删除、醒目标题与逐日调度
 
+最终尺寸调整 v9：内容 340px、操作区 92px，按钮改为“提交 / 删除”，姓名和按钮顶部对齐；超过列宽自动换行增高。实际 STOP_VERIFIED 后重启，HTTP 101 / CONNECTED，MEETING_RESUMED rows=2 / LAYOUT_UPDATED same_message=true / MEETING_READY，原消息和两行保留，未发新消息。未执行自动测试或模拟交互。按查看者隐藏按钮不受当前共享卡片支持，已说明该项未实现；本人提交/删除检查保留。排版最终确认由 User 查看。
+
+User 的标注截图指出 v6 内容框仍独占整行、操作没有落在右侧，v6 排版未通过。原因是水平容器中的 input.width=fill 占满整行；v7 改为 280px 并同步表头列宽。随后 User 明确内容超过列宽后自动换行，v8 保留一行起步与自动增高、取消六行高度上限，姓名和按钮顶部对齐。这里只记录实现及迁移结果，不将 API 更新成功等同于最终排版验收。
+
 最新 UI 反馈后，改为 v6 紧凑布局：姓名、内容与右侧操作排列，“重新保存 / 删除本行”并排，内容框默认一行、行距 4px。User 取消补发，实际仅更新最近原消息。STOP_VERIFIED 后重启，真实 HTTP 101 / CONNECTED、MEETING_RESUMED rows=2 / LAYOUT_UPDATED same_message=true / MEETING_READY；两行保留，没有新消息发送。新 UI 由 User 直接查看，未运行自动测试。
 
 新增真实交互证据（北京时间）：17:25:41 ROW_DELETED rows=1；17:25:43 ROW_ADDED rows=2；17:25:53 及 17:26:28 ROW_SAVED rows=2 / fields=1。这些是 User 实际操作，证明本人删除后可重新添加并保存，未代用户模拟操作。未来 10:00 定时仍未到时实测。
