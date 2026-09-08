@@ -1,4 +1,5 @@
 'use strict';
+const SUMMARY_VERSION=1;
 
 const hasEstimatedToday=text=>/(?:预计|预期|计划|争取|力争|可能|大概|有望)\s*(?:可|能|会|将|能够|可以)?\s*(?:在|于)?\s*(?:今日|今天)|(?:今日|今天)\s*(?:预计|预期|计划|争取|力争|可能|大概|有望)/u.test(text);
 const hasTodaySignal=text=>/(?:今日|今天)交付/u.test(text)||hasEstimatedToday(text);
@@ -31,8 +32,9 @@ function extractDelivery(content) {
 function deliveryEntries(rows) {
   // content is the last successful submission even while its input is open.
   return ['planning','engineering'].flatMap(section=>rows.filter(row=>row.section===section))
-    .map(row=>({owner:row.owner,tasks:row.deliveryResult?.tasks||extractDelivery(row.content),
-      pending:row.deliveryResult&&row.deliveryResult.status!=='ready'})).filter(entry=>entry.tasks.length||entry.pending);
+    .filter(row=>row.content.trim())
+    .map(row=>({owner:row.owner,tasks:row.deliveryResult?.tasks||extractDelivery(row.content)}))
+    .filter(entry=>entry.tasks.length);
 }
 
 // Only the trusted row owner becomes an @ tag. Work text stays literal.
@@ -43,8 +45,8 @@ function escapeMarkdown(text) {
 
 function deliverySummary(rows) {
   const entries=deliveryEntries(rows);
-  return entries.length?entries.map(entry=>`<at id=${entry.owner}></at> ${entry.tasks.map(escapeMarkdown).join('；')}${entry.pending?'（今日交付待更新）':''}`).join('\n\n')
-    :'暂无已标记的今日交付。';
+  return entries.length?entries.map(entry=>`<at id=${entry.owner}></at> ${entry.tasks.map(escapeMarkdown).join('；')}`).join('\n\n')
+    :'暂无已提交的今日交付。';
 }
 
-module.exports={extractDelivery,deliveryEntries,deliverySummary,hasEstimatedToday,hasTodaySignal};
+module.exports={extractDelivery,deliveryEntries,deliverySummary,hasEstimatedToday,hasTodaySignal,SUMMARY_VERSION};

@@ -2,7 +2,7 @@
 const {randomUUID,randomBytes}=require('node:crypto');
 const {meetingCard,rowElement,deliveryElement,manualDeliveryElement,cardBudget,isEditing,layoutVersion,MAX_ROWS,MAX_CONTENT,SECTIONS}=require('./meeting-card.cjs');
 const {hash,MAX_REQUESTS,requestTarget}=require('./meeting-store.cjs');
-const {extractDelivery,hasEstimatedToday}=require('./meeting-delivery.cjs');
+const {extractDelivery,hasEstimatedToday,SUMMARY_VERSION}=require('./meeting-delivery.cjs');
 const {diagnosis}=require('./probe.cjs');
 const toast=(content,type='info')=>({toast:{type,content}});
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -13,7 +13,7 @@ class MeetingService {
     Object.assign(this,{config,store,api,output,delay,now,ai});
     this.autoDelivery=config.deliveryAiEnabled===true;
     this.layoutVersion=layoutVersion(config);
-    this.queue=Promise.resolve();this.stopped=false;this.processing=false;this.fault=false;
+    this.queue=Promise.resolve();this.stopped=false;this.processing=false;this.fault=false;this.preparing=false;
     this.aiWork=Promise.resolve();this.aiRunning=false;this.aiAttempted=new Set();
   }
   record(code,extra=''){this.output(`[${code}]${extra?' '+extra:''}`);}
@@ -23,6 +23,7 @@ class MeetingService {
       (kind==='delete'&&this.config.rowPermissions?.delete==='all'));
   }
   async prepare() {
+    this.preparing=true;
     let s=this.store.get();
     if(this.now()-s.createdAt>=13*24*60*60*1000)throw new Error('CARD_EXPIRED_REVIEW');
     if(s.stage==='creating')throw new Error('CARD_CREATE_UNCONFIRMED');
@@ -53,14 +54,14 @@ class MeetingService {
     const needsRecognition=row=>row.content&&(!row.deliveryResult||
       (row.deliveryResult.policyVersion!==this.ai?.policyVersion&&
         (hasEstimatedToday(row.content)||row.content.includes('今天交付'))));
-    if(this.ai&&!s.pending&&!s.layoutPending&&s.rows.some(needsRecognition)) {
+    if(this.ai&&!s.pending&&!s.layoutPending&&!s.summaryPending&&s.rows.some(needsRecognition)) {
       const affected=s.rows.filter(needsRecognition).length;
       s.rows=s.rows.map(row=>needsRecognition(row)?{...row,deliveryResult:{submissionId:randomUUID(),
         policyVersion:this.ai.policyVersion,status:'pending',tasks:row.deliveryResult?.tasks||extractDelivery(row.content)}}:row);
       this.store.put(s);
       this.record('AI_RECOGNITION_QUEUED',`rows=${affected}`);
     }
-    if(!s.pending && s.layoutVersion!==this.layoutVersion) {
+    if(!s.pending&&!s.summaryPending && s.layoutVersion!==this.layoutVersion) {
       if(!s.layoutPending) {
         // The only live legacy row was entered as 策划 by the User. Never infer
         // section from a person's identity or unknown department for bulk migration.
@@ -79,7 +80,21 @@ class MeetingService {
       s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=this.layoutVersion;this.store.put(s);
       this.record('LAYOUT_UPDATED',`same_message=true; rows=${s.rows.length}`);
     }
-    if(this.store.get().pending)return false;
+    s=this.store.get();
+    if(this.autoDelivery&&!s.pending&&!s.layoutPending&&(s.summaryVersion!==SUMMARY_VERSION||s.summaryPending)) {
+      if(!s.summaryPending){s.summaryPending={uuid:randomUUID(),sequence:s.sequence+1};this.store.put(s);}
+      const intent=s.summaryPending;
+      let reply;
+      try{reply=await this.api.updateSummary(s.cardId,intent,deliveryElement(s.rows));}
+      catch(e){this.record('SUMMARY_REFRESH_UNCONFIRMED',diagnosis(e,'CALLBACK'));return false;}
+      if(reply?.code!==0){this.record('SUMMARY_REFRESH_UNCONFIRMED',diagnosis(reply,'CALLBACK'));return false;}
+      s=this.store.get();
+      if(s.summaryPending?.uuid!==intent.uuid||s.summaryPending.sequence!==intent.sequence)throw new Error('PENDING_CHANGED');
+      s.sequence=intent.sequence;s.summaryVersion=SUMMARY_VERSION;s.summaryPending=null;this.store.put(s);
+      this.record('DELIVERY_SUMMARY_REFRESHED','same_message=true');
+    }
+    if(this.store.get().pending||this.store.get().summaryPending)return false;
+    this.preparing=false;
     this.pump();
     this.pumpAi();
     return true;
@@ -195,7 +210,7 @@ class MeetingService {
         tasks:row.deliveryResult?.tasks||extractDelivery(row.content)}:undefined};
   }
   pumpAi() {
-    if(!this.ai||this.aiRunning||this.stopped||this.fault||!this.nextAiRow())return;
+    if(!this.ai||this.aiRunning||this.stopped||this.fault||this.preparing||!this.nextAiRow())return;
     this.aiRunning=true;
     this.aiWork=this.runAi().catch(()=>this.record('AI_WORKER_PAUSED'))
       .finally(()=>{this.aiRunning=false;this.pumpAi();});
@@ -227,7 +242,7 @@ class MeetingService {
     }
   }
   pump() {
-    if(this.processing||this.fault||!(this.store.get().requests||[]).length)return;
+    if(this.processing||this.fault||this.preparing||!(this.store.get().requests||[]).length)return;
     this.processing=true;
     this.queue=this.drain()
       .catch(e=>{this.fault=true;this.record('MEETING_FAULT',diagnosis(e,'CALLBACK'));})
