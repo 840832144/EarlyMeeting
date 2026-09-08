@@ -1,5 +1,8 @@
 'use strict';
 
+const hasEstimatedToday=text=>/(?:预计|预期|计划|争取|力争|可能|大概|有望)\s*(?:可|能|会|将|能够|可以)?\s*(?:在|于)?\s*(?:今日|今天)|(?:今日|今天)\s*(?:预计|预期|计划|争取|力争|可能|大概|有望)/u.test(text);
+const hasTodaySignal=text=>/(?:今日|今天)交付/u.test(text)||hasEstimatedToday(text);
+
 const clean=value=>value.trim().replace(/^(?:[-*•]\s+|\d+\s*[.、)）]\s*)/u,'')
   .replace(/^[\s:：,，。]+|[\s,，。]+$/gu,'').trim();
 
@@ -44,4 +47,4 @@ function deliverySummary(rows) {
     :'暂无已标记的今日交付。';
 }
 
-module.exports={extractDelivery,deliveryEntries,deliverySummary};
+module.exports={extractDelivery,deliveryEntries,deliverySummary,hasEstimatedToday,hasTodaySignal};

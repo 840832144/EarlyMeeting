@@ -2,7 +2,7 @@
 const {randomUUID,randomBytes}=require('node:crypto');
 const {meetingCard,rowElement,deliveryElement,manualDeliveryElement,cardBudget,isEditing,layoutVersion,MAX_ROWS,MAX_CONTENT,SECTIONS}=require('./meeting-card.cjs');
 const {hash,MAX_REQUESTS,requestTarget}=require('./meeting-store.cjs');
-const {extractDelivery}=require('./meeting-delivery.cjs');
+const {extractDelivery,hasEstimatedToday}=require('./meeting-delivery.cjs');
 const {diagnosis}=require('./probe.cjs');
 const toast=(content,type='info')=>({toast:{type,content}});
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -50,10 +50,15 @@ class MeetingService {
     }else this.record('MEETING_RESUMED',`same_message=true; rows=${s.rows.length}`);
     if(s.pending)await this.flush();
     s=this.store.get();
-    if(this.ai&&!s.pending&&!s.layoutPending&&s.rows.some(row=>row.content&&!row.deliveryResult)) {
-      s.rows=s.rows.map(row=>row.content&&!row.deliveryResult?{...row,deliveryResult:{submissionId:randomUUID(),
-        status:'pending',tasks:extractDelivery(row.content)}}:row);
+    const needsRecognition=row=>row.content&&(!row.deliveryResult||
+      (row.deliveryResult.policyVersion!==this.ai?.policyVersion&&
+        (hasEstimatedToday(row.content)||row.content.includes('今天交付'))));
+    if(this.ai&&!s.pending&&!s.layoutPending&&s.rows.some(needsRecognition)) {
+      const affected=s.rows.filter(needsRecognition).length;
+      s.rows=s.rows.map(row=>needsRecognition(row)?{...row,deliveryResult:{submissionId:randomUUID(),
+        policyVersion:this.ai.policyVersion,status:'pending',tasks:row.deliveryResult?.tasks||extractDelivery(row.content)}}:row);
       this.store.put(s);
+      this.record('AI_RECOGNITION_QUEUED',`rows=${affected}`);
     }
     if(!s.pending && s.layoutVersion!==this.layoutVersion) {
       if(!s.layoutPending) {
@@ -186,7 +191,8 @@ class MeetingService {
   changedRow(row,request,submissionId) {
     if(request.kind==='edit')return {...row,editing:true,revision:row.revision+1};
     return {...row,content:request.content,editing:false,revision:row.revision+1,
-      deliveryResult:this.ai?{submissionId,status:'pending',tasks:row.deliveryResult?.tasks||extractDelivery(row.content)}:undefined};
+      deliveryResult:this.ai?{submissionId,policyVersion:this.ai.policyVersion,status:'pending',
+        tasks:row.deliveryResult?.tasks||extractDelivery(row.content)}:undefined};
   }
   pumpAi() {
     if(!this.ai||this.aiRunning||this.stopped||this.fault||!this.nextAiRow())return;
@@ -214,7 +220,7 @@ class MeetingService {
       const s=this.store.get();
       if(this.stopped||this.fault||(s.requests||[]).length>=MAX_REQUESTS)return;
       if(s.rows.find(r=>r.id===row.id)?.deliveryResult?.submissionId!==submissionId)continue;
-      const result={submissionId,status,tasks};
+      const result={submissionId,policyVersion:this.ai.policyVersion,status,tasks};
       s.requests=[...(s.requests||[]),{kind:'delivery_result',row:row.id,owner:row.owner,
         event:hash('delivery:'+submissionId),result}];
       this.store.put(s);this.pump();

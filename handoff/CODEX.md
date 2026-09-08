@@ -17,6 +17,8 @@
 
 ## 当前三区域实现与唯一下一步
 
+2026-09-08 最新增量：User已验收正式群2，并在前轮关闭解散的测试群；本轮追加支持“预计今日”等疑似今日交付，保留预计原话，排除明天/其他日期及无今天交付意图的工作。修复模型提示词及结果证据校验，识别策略版本2只补识别受影响的旧记录，保留提交标识防止旧结果覆盖重提或删除。四脚本语法检查通过；STOP_VERIFIED后原状态无待确认/排队项，替换四脚本，真实CONNECTED、groups=2，正式群1/2原11/10行恢复，仅正式群2补识别1条并汇总ready，预计表述保留，失败和待处理0。未新发消息或重画整卡，无自动测试或模拟操作。备份在本机 `.local/meeting/code-backup-before-estimated-today/`。本轮增量交Review，使用中反馈即可，不增设验收流程。Subagents: none。
+
 最新交付：User 填好本机 API Key 后明确仅正式群2开放。已按群增加默认false的 delivery_ai 开关；只有正式群2切换v13自动交付，测试群和正式群1保持v12手填交付，不调用AI。八脚本语法检查通过，STOP_VERIFIED且各群无待确认/排队意图后部署；HTTP101 / CONNECTED，原卡保留1/11/10行，仅GROUP_3 LAYOUT_UPDATED。该群8份已提交记录全部识别ready、合计6项交付，失败及待处理0，三群卡片队列均空；未重发卡片或模拟员工操作。
 
 本机持续运行新接收程序；原v12代码备份位于 `.local/meeting/code-backup-before-auto-delivery/`。正式群2编辑后重提会重新识别并替换/移除本人汇总，删除行同步移除；尚无升级后真实重提/删除回调证据，直接使用中反馈。唯一下一步：正式Review，未标记Done。操作与凭据入口见 [MEETING.md](../tools/callback-test/MEETING.md)，证据见 [MEETING_ACCEPTANCE.md](../docs/MEETING_ACCEPTANCE.md)。Subagents: none。下方接入准备及全群手填为历史。

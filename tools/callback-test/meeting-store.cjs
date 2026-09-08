@@ -24,6 +24,7 @@ function validRequest(r) {
 }
 function validRowDelivery(d) {
   return d&&/^[a-f0-9-]{36}$/.test(d.submissionId||'')&&['pending','ready','failed'].includes(d.status)&&
+    (d.policyVersion===undefined||(Number.isSafeInteger(d.policyVersion)&&d.policyVersion>0))&&
     Array.isArray(d.tasks)&&d.tasks.length<=20&&d.tasks.every(t=>typeof t==='string'&&t.length>0&&t.length<=300)&&
     d.tasks.join('').length<=300;
 }
