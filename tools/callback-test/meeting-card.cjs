@@ -3,6 +3,7 @@ const {deliverySummary}=require('./meeting-delivery.cjs');
 const MAX_ROWS = 20;
 const MAX_CONTENT = 300;
 const LAYOUT_VERSION = 13;
+const layoutVersion = config => config.deliveryAiEnabled===true?LAYOUT_VERSION:12;
 const SECTIONS = {planning:'策划',engineering:'程序'};
 const plain = content => ({tag:'plain_text',content});
 const callback = value => [{type:'callback',value}];
@@ -49,7 +50,22 @@ function deliveryElement(rows=[]) {
   return {tag:'markdown',element_id:'delivery_summary',content:deliverySummary(rows),margin:'0px'};
 }
 
-function meetingCard(rows = []) {
+function manualDeliveryElement(delivery={content:'',revision:0}) {
+  const editing=isEditing(delivery);
+  return {tag:'form',element_id:'delivery_form',name:'delivery_form',...flow,elements:[
+    editing?{tag:'input',name:'delivery_content',width:'428px',required:false,margin:'0px',
+      input_type:'multiline_text',rows:1,auto_resize:true,max_length:MAX_CONTENT,
+      default_value:delivery.content}:savedText(delivery.content,'428px'),
+    {tag:'button',name:'delivery_submit',type:'primary',size:'small',margin:'0px',
+      text:plain(editing?'提交':'编辑'),form_action_type:'submit',
+      behaviors:callback({op:editing?'save_delivery':'edit_delivery',revision:delivery.revision})},
+    {tag:'button',name:'delivery_delete',type:'default',size:'small',margin:'0px',
+      text:plain('删除'),form_action_type:'submit',
+      behaviors:callback({op:'clear_delivery',revision:delivery.revision})},
+  ]};
+}
+
+function meetingCard(rows = [],delivery,autoDelivery=false) {
   return {schema:'2.0',config:{update_multi:true,enable_forward:false},
     header:{template:'blue',title:plain('今日晨会记')},
     body:{vertical_spacing:'4px',elements:[
@@ -58,17 +74,26 @@ function meetingCard(rows = []) {
       ...sectionElements('engineering',rows),
       {tag:'hr'},
       {tag:'markdown',content:'**今日交付**',text_size:'heading-1',margin:'8px 0px 0px 0px'},
-      deliveryElement(rows),
+      ...(autoDelivery?[deliveryElement(rows)]:[
+        {tag:'column_set',horizontal_spacing:'8px',flex_mode:'none',margin:'0px',columns:[
+          {tag:'column',width:'428px',elements:[{tag:'markdown',content:'**交付内容**'}]},
+          {tag:'column',width:'92px',elements:[{tag:'markdown',content:'**操作**'}]},
+        ]},manualDeliveryElement(delivery),
+      ]),
     ]}};
 }
 
-function cardBudget(rows) {
+function cardBudget(rows,delivery,autoDelivery=false) {
   // Feishu counts text descriptors too. Reserve both input and display modes.
-  const cards=[meetingCard(rows),meetingCard(rows.map(row=>({...row,editing:true}))),
-    meetingCard(rows.map(row=>({...row,content:row.content||'…',editing:false}))),
+  const currentDelivery=delivery||{content:'',revision:0};
+  const cards=[meetingCard(rows,delivery,autoDelivery),meetingCard(rows.map(row=>({...row,editing:true})),
+    {...currentDelivery,editing:true},autoDelivery),
+    meetingCard(rows.map(row=>({...row,content:row.content||'…',editing:false})),
+      {...currentDelivery,content:currentDelivery.content||'…',editing:false},autoDelivery)];
+  if(autoDelivery)cards.push(
     // Bound a later AI result before accepting the underlying submission.
     meetingCard(rows.map(row=>({...row,editing:true,deliveryResult:{status:'pending',
-      tasks:row.content?[row.content+'；'.repeat(20)]:[]}})))];
+      tasks:row.content?[row.content+'；'.repeat(20)]:[]}})),delivery,true));
   const sizes=cards.map(card=>{
     let components=0;
     function walk(x) {if(!x||typeof x!=='object')return;
@@ -79,4 +104,4 @@ function cardBudget(rows) {
   const components=Math.max(...sizes.map(s=>s.components)),bytes=Math.max(...sizes.map(s=>s.bytes));
   return {components,bytes,valid:rows.length<=MAX_ROWS && components<=200 && bytes<=30000};
 }
-module.exports={meetingCard,rowElement,deliveryElement,cardBudget,isEditing,LAYOUT_VERSION,MAX_ROWS,MAX_CONTENT,SECTIONS};
+module.exports={meetingCard,rowElement,deliveryElement,manualDeliveryElement,cardBudget,isEditing,layoutVersion,LAYOUT_VERSION,MAX_ROWS,MAX_CONTENT,SECTIONS};

@@ -30,6 +30,7 @@ function readGroups(directory,config) {
     if(g.row_permissions!==undefined && (!g.row_permissions ||
       !['owner','all'].includes(g.row_permissions.submit) ||
       !['owner','all'].includes(g.row_permissions.delete)))throw new Error('GROUP_PERMISSIONS_INVALID');
+    if(g.delivery_ai!==undefined&&typeof g.delivery_ai!=='boolean')throw new Error('GROUP_AI_INVALID');
     if(g.prefill!==undefined) {
       const p=g.prefill;
       if(!p||typeof p.enabled!=='boolean'||Object.keys(SECTIONS).some(section=>
@@ -73,7 +74,7 @@ class MeetingSchedule {
   }
   start() {
     this.output(`[SCHEDULE_CONFIGURED] groups=${this.groups.length}; scheduled=${this.groups.filter(g=>g.schedule).length}; weekdays=1-5; time=09:45; timezone=Asia/Shanghai`);
-    this.groups.forEach((g,index)=>this.output(`[GROUP_${index+1}] [GROUP_OPTIONS] prefill=${Boolean(g.prefill?.enabled)}; planning=${g.prefill?.planning.length||0}; engineering=${g.prefill?.engineering.length||0}; submit=${g.row_permissions?.submit||'owner'}; delete=${g.row_permissions?.delete||'owner'}`));
+    this.groups.forEach((g,index)=>this.output(`[GROUP_${index+1}] [GROUP_OPTIONS] prefill=${Boolean(g.prefill?.enabled)}; planning=${g.prefill?.planning.length||0}; engineering=${g.prefill?.engineering.length||0}; submit=${g.row_permissions?.submit||'owner'}; delete=${g.row_permissions?.delete||'owner'}; delivery_ai=${g.delivery_ai===true}`));
     this.timer=setInterval(()=>{void this.tick();},15000);
     void this.tick();
   }
@@ -93,7 +94,8 @@ class MeetingSchedule {
       if(this.stopped)return;
       const g=this.groups[i];
       if(this.active.has(g.chat_id))continue;
-      const config={...this.config,chatId:g.chat_id,prefill:g.prefill,rowPermissions:g.row_permissions};
+      const config={...this.config,chatId:g.chat_id,prefill:g.prefill,rowPermissions:g.row_permissions,
+        deliveryAiEnabled:g.delivery_ai===true,deliveryAi:g.delivery_ai===true?this.config.deliveryAi:null};
       const dir=dayDirectory(this.directory,config,today.date);
       const exists=fs.existsSync(path.join(dir,'meeting-state.json'));
       const due=g.schedule&&today.weekday>=1&&today.weekday<=5&&today.minute>=9*60+45&&today.date>=g.start_date;

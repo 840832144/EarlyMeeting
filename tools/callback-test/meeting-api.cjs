@@ -25,6 +25,8 @@ function createApi(config,Lark,transport=Lark.defaultHttpInstance) {
       ])}})),
     updateSummary:(cardId,p,summary)=>call(client.cardkit.v1.cardElement.update({path:{card_id:cardId,element_id:'delivery_summary'},
       data:{uuid:p.uuid,sequence:p.sequence,element:JSON.stringify(summary)}})),
+    updateDelivery:(cardId,p,element)=>call(client.cardkit.v1.cardElement.update({path:{card_id:cardId,element_id:'delivery_form'},
+      data:{uuid:p.uuid,sequence:p.sequence,element:JSON.stringify(element)}})),
     sendCard:(cardId,uuid)=>call(client.im.message.create({params:{receive_id_type:'chat_id'},
       data:{receive_id:config.chatId,msg_type:'interactive',uuid,
         content:JSON.stringify({type:'card',data:{card_id:cardId}})}})),

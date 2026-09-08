@@ -2,7 +2,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
-const {MAX_ROWS,MAX_CONTENT,SECTIONS,LAYOUT_VERSION}=require('./meeting-card.cjs');
+const {MAX_ROWS,MAX_CONTENT,SECTIONS,layoutVersion}=require('./meeting-card.cjs');
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 function binding(config){return hash(JSON.stringify([config.appId,config.chatId]));}
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -78,7 +78,7 @@ function createStore(directory,config) {
   const fingerprint=binding(config);
   // Only a new group/day state gets roster rows. Once persisted, restarts and
   // retries keep that snapshot, including any rows the group has deleted.
-  const initial=()=>({version:1,layoutVersion:LAYOUT_VERSION,binding:fingerprint,stage:'new',createdAt:Date.now(),
+  const initial=()=>({version:1,layoutVersion:layoutVersion(config),binding:fingerprint,stage:'new',createdAt:Date.now(),
     sequence:0,rows:config.prefill?.enabled?Object.keys(SECTIONS).flatMap(section=>
       config.prefill[section].map(member=>({id:'r'+crypto.randomBytes(6).toString('hex'),
         owner:member.open_id,section,content:'',revision:0}))):[],

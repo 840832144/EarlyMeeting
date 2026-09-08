@@ -4,7 +4,17 @@
 - 指定测试群，本机持有数据，同一条卡片；User 直接验收、边验边改。
 - 保留现有应用、原模板及发送入口；测试群及两个正式群工作日 09:45 定时，各群独立。Subagents: none。
 
-## 2026-09-08 DeepSeek 自动今日交付：接入准备
+## 2026-09-08 DeepSeek 自动今日交付：仅正式群2已启用
+
+User 在本机填好API Key后，限定先只对正式群2开放。新增每群 `delivery_ai` 开关，默认false；只将配置中的正式群2设为true，保留所有群ID、名称、权限和调度。未开启群继续原v12手填交付，不调用AI，也不生成或投递该群文本到模型。
+
+部署前八脚本语法检查通过；STOP_VERIFIED，逐群确认当天原卡stage=sent、pending/layoutPending/requests为空且实际模式容量有效。v12代码备份在受限目录后替换八个脚本；凭据未复制、未输出，业务状态文件未手工修改。启动真实HTTP101 / CONNECTED，groups=3 scheduled=3 time=09:45；三群均prefill=false、submit=owner、delete=owner，delivery_ai分别false/false/true。
+
+真实结果：GROUP_1/2分别恢复原v12卡片1/11行，无LAYOUT_UPDATED；仅GROUP_3原10行卡片LAYOUT_UPDATED same_message=true。DeepSeek补识别其中8份已提交内容，8份均ready、合计6项交付、pending=0、failed=0；每份结果均完成DELIVERY_SUMMARY_UPDATED same_message=true。最终三个群卡片队列和待确认意图均为空，其他两群无AI结果状态。未新发消息，未读取或上传原始回调、完整日志、真实员工记录或模型完整响应到Git。
+
+当前证据证明群范围隔离、模型真实请求/解析和既有卡片汇总更新成功。尚未观测升级后用户实际编辑重提、删除及多人同时提交，不将代码审查或首次补识别冒称这些交互已经验收；User直接使用中反馈。实现交Review，不标记Done。Subagents: none。
+
+### 同轮接入准备（历史）
 
 User 批准每次提交及编辑后重新提交时，由 DeepSeek 识别明确标记的交付事项，按 @原行人员 + 工作更新同卡汇总。源记录保存与识别分开；成功的新结果替换旧结果，成功空结果移除本人汇总，删除行同步移除。submissionId 防止旧识别返回覆盖新提交；结果在各群原队列内串行合入最新状态，不覆盖异步等待期间新到的请求。仅打开编辑不识别未提交草稿。旧手填交付留在本机历史字段。
 

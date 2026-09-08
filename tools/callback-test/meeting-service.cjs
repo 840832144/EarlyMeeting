@@ -1,15 +1,18 @@
 'use strict';
 const {randomUUID,randomBytes}=require('node:crypto');
-const {meetingCard,rowElement,deliveryElement,cardBudget,isEditing,LAYOUT_VERSION,MAX_ROWS,MAX_CONTENT,SECTIONS}=require('./meeting-card.cjs');
+const {meetingCard,rowElement,deliveryElement,manualDeliveryElement,cardBudget,isEditing,layoutVersion,MAX_ROWS,MAX_CONTENT,SECTIONS}=require('./meeting-card.cjs');
 const {hash,MAX_REQUESTS,requestTarget}=require('./meeting-store.cjs');
 const {extractDelivery}=require('./meeting-delivery.cjs');
 const {diagnosis}=require('./probe.cjs');
 const toast=(content,type='info')=>({toast:{type,content}});
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const isDelivery=kind=>['save_delivery','clear_delivery','edit_delivery'].includes(kind);
 
 class MeetingService {
-  constructor(config,store,api,output,{delay=250,now=Date.now,ai=config.deliveryAi||null}={}) {
+  constructor(config,store,api,output,{delay=250,now=Date.now,ai=config.deliveryAiEnabled===true?config.deliveryAi||null:null}={}) {
     Object.assign(this,{config,store,api,output,delay,now,ai});
+    this.autoDelivery=config.deliveryAiEnabled===true;
+    this.layoutVersion=layoutVersion(config);
     this.queue=Promise.resolve();this.stopped=false;this.processing=false;this.fault=false;
     this.aiWork=Promise.resolve();this.aiRunning=false;this.aiAttempted=new Set();
   }
@@ -24,10 +27,10 @@ class MeetingService {
     if(this.now()-s.createdAt>=13*24*60*60*1000)throw new Error('CARD_EXPIRED_REVIEW');
     if(s.stage==='creating')throw new Error('CARD_CREATE_UNCONFIRMED');
     if(s.stage==='new') {
-      if(!cardBudget(s.rows,s.delivery).valid)throw new Error('PREFILL_CARD_SIZE_LIMIT');
+      if(!cardBudget(s.rows,s.delivery,this.autoDelivery).valid)throw new Error('PREFILL_CARD_SIZE_LIMIT');
       s.stage='creating';this.store.put(s);
       let reply;
-      try {reply=await this.api.createCard(meetingCard(s.rows,s.delivery));}
+      try {reply=await this.api.createCard(meetingCard(s.rows,s.delivery,this.autoDelivery));}
       catch(e){this.record('CARD_CREATE_UNCONFIRMED',diagnosis(e,'SEND'));return false;}
       if(reply?.code!==0) {s.stage='new';this.store.put(s);
         this.record('CARD_CREATE_REJECTED',diagnosis(reply,'SEND'));return false;}
@@ -52,7 +55,7 @@ class MeetingService {
         status:'pending',tasks:extractDelivery(row.content)}}:row);
       this.store.put(s);
     }
-    if(!s.pending && s.layoutVersion!==LAYOUT_VERSION) {
+    if(!s.pending && s.layoutVersion!==this.layoutVersion) {
       if(!s.layoutPending) {
         // The only live legacy row was entered as 策划 by the User. Never infer
         // section from a person's identity or unknown department for bulk migration.
@@ -61,14 +64,14 @@ class MeetingService {
           const {role,department,departmentStatus,...row}=previous;
           return {...row,section:row.section||(role==='程序'?'engineering':'planning')};
         });
-        s.rows=rows;
+        s.rows=rows;s.delivery??={content:'',revision:0};
         s.layoutPending={uuid:randomUUID(),sequence:s.sequence+1};this.store.put(s);
       }
       let reply;
-      try{reply=await this.api.updateLayout(s.cardId,s.layoutPending,meetingCard(s.rows,s.delivery));}
+      try{reply=await this.api.updateLayout(s.cardId,s.layoutPending,meetingCard(s.rows,s.delivery,this.autoDelivery));}
       catch(e){this.record('LAYOUT_UNCONFIRMED',diagnosis(e,'CALLBACK'));return false;}
       if(reply?.code!==0){this.record('LAYOUT_UNCONFIRMED',diagnosis(reply,'CALLBACK'));return false;}
-      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=LAYOUT_VERSION;this.store.put(s);
+      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=this.layoutVersion;this.store.put(s);
       this.record('LAYOUT_UPDATED',`same_message=true; rows=${s.rows.length}`);
     }
     if(this.store.get().pending)return false;
@@ -86,15 +89,28 @@ class MeetingService {
     if(!/^ou_[A-Za-z0-9_-]{1,100}$/.test(e?.operator?.open_id||'') || e?.action?.tag!=='button')
       return {error:'无法核对本次操作，请重新点击按钮。'};
     const value=e.action.value;
-    if(['save_delivery','clear_delivery','edit_delivery'].includes(value?.op))
+    if(this.autoDelivery&&isDelivery(value?.op))
       return {error:'今日交付已改为自动汇总，请编辑本人的晨会记录。'};
-    if(!value || !['add','save','edit','delete'].includes(value.op))return {error:'请使用本轮卡片上的按钮。'};
+    if(!value || !['add','save','edit','delete','save_delivery','clear_delivery','edit_delivery'].includes(value.op))return {error:'请使用本轮卡片上的按钮。'};
     const eventId=payload?.header?.event_id;
     // Token is hashed only in memory if the dispatcher supplies no event ID.
     const nonce=typeof eventId==='string'?eventId:e.token;
     if(typeof nonce!=='string'||!nonce||nonce.length>2048)return {error:'缺少回调防重标识，请重新点击。'};
     const request={kind:value.op,owner:e.operator.open_id,
       event:hash(JSON.stringify([state.messageId,nonce,value.op,value.row||'',value.section||'']))};
+    if(isDelivery(value.op)) {
+      const delivery=state.delivery||{content:'',revision:0};
+      if(!Number.isSafeInteger(value.revision)||value.revision!==delivery.revision)
+        return {error:'今日交付已被更新，请查看最新内容后再操作。'};
+      request.revision=value.revision;
+      if(value.op==='clear_delivery')return request;
+      if(value.op==='edit_delivery')return isEditing(delivery)?{error:'今日交付已在编辑中，请在输入框填写后提交。'}:request;
+      if(!isEditing(delivery))return {error:'请先点击今日交付的“编辑”，再修改提交。'};
+      const content=e.action.form_value?.delivery_content;
+      if(typeof content!=='string'||!content.trim()||content.length>MAX_CONTENT)
+        return {error:`请填写今日交付（${MAX_CONTENT}字内），再提交。`};
+      request.content=content.trim();return request;
+    }
     if(value.op==='add') {
       if(!Object.hasOwn(SECTIONS,value.section||''))return {error:'请选择策划或程序区域下的加号。'};
       request.section=value.section;
@@ -145,23 +161,27 @@ class MeetingService {
     }
     this.record('ACTION_QUEUED',`waiting=${s.requests.length}`);
     this.pump();
-    if(request.kind==='edit')return toast('正在打开编辑，请等输入框出现后修改并提交。');
+    if(['edit','edit_delivery'].includes(request.kind))return toast('正在打开编辑，请等输入框出现后修改并提交。');
+    if(isDelivery(request.kind))return toast(request.kind==='clear_delivery'
+      ?'清空已排队，请等今日交付刷新。':'已排队，今日交付刷新后才表示提交完成。');
     return toast(request.kind==='add'?'添加已排队，请等待你的行出现。':request.kind==='delete'
       ?'删除已排队，请等该行消失。':'已排队，请勿重复点击；本行刷新后才表示保存完成。');
   }
   queueFits(state,requests) {
-    let rows=state.rows;
+    let rows=state.rows,delivery=state.delivery||{content:'',revision:0};
     // Reserve capacity for every accepted edit, including the in-flight one.
     // The placeholder has the same byte length as a generated row ID; it is
     // only used for size estimation, never saved or sent to Feishu.
     for(const r of requests) {
-      if(r.kind==='delivery_result')rows=rows.map(row=>row.id===r.row&&row.deliveryResult?.submissionId===r.result.submissionId
+      if(isDelivery(r.kind))delivery={content:r.kind==='edit_delivery'?delivery.content:r.kind==='clear_delivery'?'':r.content,
+        editing:r.kind!=='save_delivery',revision:delivery.revision+1};
+      else if(r.kind==='delivery_result')rows=rows.map(row=>row.id===r.row&&row.deliveryResult?.submissionId===r.result.submissionId
         ?{...row,deliveryResult:r.result}:row);
       else if(r.kind==='add')rows=[...rows,{id:'r000000000000',owner:r.owner,section:r.section,content:'',revision:0}];
       else if(r.kind==='delete')rows=rows.filter(row=>row.id!==r.row);
       else rows=rows.map(row=>row.id===r.row?this.changedRow(row,r,'00000000-0000-0000-0000-000000000000'):row);
     }
-    return cardBudget(rows).valid;
+    return cardBudget(rows,delivery,this.autoDelivery).valid;
   }
   changedRow(row,request,submissionId) {
     if(request.kind==='edit')return {...row,editing:true,revision:row.revision+1};
@@ -227,8 +247,19 @@ class MeetingService {
     const s=this.store.get();
     if(s.pending){this.record('QUEUE_PAUSED',`waiting=${s.requests?.length||0}`);return false;}
     if(s.events.includes(request.event))return this.finishRequest(request,'EVENT_DUPLICATE');
+    if(isDelivery(request.kind)) {
+      if(this.autoDelivery)return this.finishRequest(request,'MANUAL_DELIVERY_DISABLED');
+      const previous=s.delivery||{content:'',revision:0};
+      if(previous.revision!==request.revision)return this.finishRequest(request,'STALE_DELIVERY_REJECTED');
+      const delivery={content:request.kind==='edit_delivery'?previous.content:request.kind==='clear_delivery'?'':request.content,
+        editing:request.kind!=='save_delivery',revision:previous.revision+1};
+      if(!cardBudget(s.rows,delivery,false).valid)return this.finishRequest(request,'CARD_SIZE_LIMIT');
+      s.pending={kind:request.kind,delivery,event:request.event,uuid:randomUUID(),sequence:s.sequence+1};
+      this.store.put(s);return this.flush();
+    }
     let row;
     if(request.kind==='delivery_result') {
+      if(!this.autoDelivery)return this.finishRequest(request,'AUTO_DELIVERY_DISABLED');
       const previous=s.rows.find(r=>r.id===request.row);
       if(previous?.deliveryResult?.submissionId!==request.result.submissionId)
         return this.finishRequest(request,'STALE_AI_RESULT_IGNORED');
@@ -245,18 +276,19 @@ class MeetingService {
     }
     const nextRows=request.kind==='add'?[...s.rows,row]:request.kind==='delete'
       ?s.rows.filter(r=>r.id!==row.id):s.rows.map(r=>r.id===row.id?row:r);
-    if(!cardBudget(nextRows).valid)return this.finishRequest(request,'CARD_SIZE_LIMIT');
+    if(!cardBudget(nextRows,s.delivery,this.autoDelivery).valid)return this.finishRequest(request,'CARD_SIZE_LIMIT');
     s.pending={kind:request.kind,row,event:request.event,uuid:randomUUID(),sequence:s.sequence+1};
     this.store.put(s);return this.flush();
   }
   async flush() {
     let s=this.store.get();const p=s.pending;
     if(!p)return true;
-    const nextRows=p.kind==='add'?[...s.rows,p.row]:p.kind==='delete'
+    const nextRows=isDelivery(p.kind)?s.rows:p.kind==='add'?[...s.rows,p.row]:p.kind==='delete'
       ?s.rows.filter(row=>row.id!==p.row.id):s.rows.map(row=>row.id===p.row.id?p.row:row);
     let reply;
-    try{reply=p.kind==='delivery_result'?await this.api.updateSummary(s.cardId,p,deliveryElement(nextRows)):
-      ['save','delete'].includes(p.kind)?await this.api.updateRowAndSummary(s.cardId,p,rowElement(p.row),deliveryElement(nextRows)):
+    try{reply=isDelivery(p.kind)?await this.api.updateDelivery(s.cardId,p,manualDeliveryElement(p.delivery)):
+      p.kind==='delivery_result'?await this.api.updateSummary(s.cardId,p,deliveryElement(nextRows)):
+      this.autoDelivery&&['save','delete'].includes(p.kind)?await this.api.updateRowAndSummary(s.cardId,p,rowElement(p.row),deliveryElement(nextRows)):
         await this.api.updateRow(s.cardId,p,rowElement(p.row));}
     catch(e){this.record('UPDATE_UNCONFIRMED',diagnosis(e,'CALLBACK'));return false;}
     if(reply?.code!==0) {
@@ -268,12 +300,18 @@ class MeetingService {
     // into the latest state so completing one update cannot erase those requests.
     s=this.store.get();
     if(s.pending?.uuid!==p.uuid||s.pending.sequence!==p.sequence)throw new Error('PENDING_CHANGED');
-    s.rows=p.kind==='add'?[...s.rows,p.row]:p.kind==='delete'
+    if(isDelivery(p.kind))s.delivery=p.delivery;
+    else s.rows=p.kind==='add'?[...s.rows,p.row]:p.kind==='delete'
       ?s.rows.filter(r=>r.id!==p.row.id):s.rows.map(r=>r.id===p.row.id?p.row:r);
     s.sequence=p.sequence;s.events=[...s.events,p.event].slice(-256);s.pending=null;
     s.requests=(s.requests||[]).filter(r=>r.event!==p.event);
     this.store.put(s);
     this.pumpAi();
+    if(isDelivery(p.kind)) {
+      this.record(p.kind==='edit_delivery'?'DELIVERY_EDITING':p.kind==='clear_delivery'?'DELIVERY_CLEARED':'DELIVERY_SAVED',
+        `same_message=true; fields=${p.kind==='edit_delivery'?0:1}`);
+      return true;
+    }
     if(p.kind==='delivery_result') {
       this.record('DELIVERY_SUMMARY_UPDATED',`same_message=true; tasks=${p.row.deliveryResult.tasks.length}; status=${p.row.deliveryResult.status}`);
       return true;

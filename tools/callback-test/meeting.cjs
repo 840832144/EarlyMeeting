@@ -12,8 +12,8 @@ async function main() {
   let config;
   try{config=readConfig(process.env);}catch{output('[CONFIG_ERROR] 请检查本机配置。');session.finish();return;}
   try{config.deliveryAi=createAi(path.join(__dirname,'.local','meeting'));
-    output(config.deliveryAi?'[AI_ENABLED] 今日交付在提交后异步识别。':'[AI_DISABLED] 今日交付使用本机明确标记规则，未调用模型。');}
-  catch{config.deliveryAi=null;output('[AI_CONFIG_INVALID] AI配置无效；晨会保存继续使用本机规则。');}
+    output(config.deliveryAi?'[AI_CONFIG_READY] 仅对群配置中开启 delivery_ai 的群启用识别。':'[AI_DISABLED] 已开启自动交付的群使用本机明确标记规则，其他群保持手填。');}
+  catch{config.deliveryAi=null;output('[AI_CONFIG_INVALID] AI配置无效；已开启自动交付的群使用本机规则，其他群保持手填。');}
   for(const key of ['EARLYMEETING_APP_ID','EARLYMEETING_APP_SECRET','EARLYMEETING_TEST_CHAT_ID'])delete process.env[key];
   const Lark=require('@larksuiteoapi/node-sdk');
   const silent=Object.fromEntries(['trace','debug','info','warn','error'].map(k=>[k,()=>{}]));

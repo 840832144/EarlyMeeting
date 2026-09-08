@@ -20,6 +20,7 @@
     },
     {
       "name": "正式群2",
+      "delivery_ai": false,
       "chat_id": "",
       "enabled": false,
       "schedule": false,
