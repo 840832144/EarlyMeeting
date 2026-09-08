@@ -6,6 +6,20 @@ const {MAX_ROWS,MAX_CONTENT,SECTIONS}=require('./meeting-card.cjs');
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 function binding(config){return hash(JSON.stringify([config.appId,config.chatId]));}
 const clone = value => JSON.parse(JSON.stringify(value));
+const MAX_REQUESTS=24;
+function requestTarget(request) {
+  return ['save_delivery','clear_delivery'].includes(request.kind)?'delivery':
+    request.kind==='add'?`add:${request.owner}`:`row:${request.row}`;
+}
+function validRequest(r) {
+  if(!r||!['add','save','delete','save_delivery','clear_delivery'].includes(r.kind)||
+    !/^ou_[A-Za-z0-9_-]{1,100}$/.test(r.owner||'')||!/^[a-f0-9]{64}$/.test(r.event||''))return false;
+  if(r.kind==='add')return Object.hasOwn(SECTIONS,r.section||'');
+  if(!Number.isSafeInteger(r.revision)||r.revision<0)return false;
+  if(['save','delete'].includes(r.kind)&&!/^r[a-f0-9]{12}$/.test(r.row||''))return false;
+  return !['save','save_delivery'].includes(r.kind)||
+    (typeof r.content==='string'&&Boolean(r.content.trim())&&r.content.length<=MAX_CONTENT);
+}
 function validRow(row) {
   return row && /^r[a-f0-9]{12}$/.test(row.id) && /^ou_[A-Za-z0-9_-]{1,100}$/.test(row.owner) &&
     (row.role===undefined||(typeof row.role==='string' && row.role.length<=24)) &&
@@ -35,6 +49,9 @@ function validate(state,fingerprint) {
       (!/^[a-f0-9-]{36}$/.test(state.sendUuid||'') || !Number.isFinite(state.sendAt))) throw new Error('LOCAL_STATE_INVALID');
   if(state.stage==='sent' && !/^om_[A-Za-z0-9_-]+$/.test(state.messageId||''))throw new Error('LOCAL_STATE_INVALID');
   if(state.delivery!==undefined && !validDelivery(state.delivery))throw new Error('LOCAL_STATE_INVALID');
+  if(state.requests!==undefined&&(!Array.isArray(state.requests)||state.requests.length>MAX_REQUESTS||
+    !state.requests.every(validRequest)||new Set(state.requests.map(r=>r.event)).size!==state.requests.length||
+    new Set(state.requests.map(requestTarget)).size!==state.requests.length))throw new Error('LOCAL_QUEUE_INVALID');
   if(state.pending && (!(['add','save','delete'].includes(state.pending.kind)?validRow(state.pending.row):
       ['save_delivery','clear_delivery'].includes(state.pending.kind)&&validDelivery(state.pending.delivery)) ||
     state.pending.sequence!==state.sequence+1 || !/^[a-f0-9-]{36}$/.test(state.pending.uuid||'') ||
@@ -55,7 +72,7 @@ function createStore(directory,config) {
     sequence:0,rows:config.prefill?.enabled?Object.keys(SECTIONS).flatMap(section=>
       config.prefill[section].map(member=>({id:'r'+crypto.randomBytes(6).toString('hex'),
         owner:member.open_id,section,content:'',revision:0}))):[],
-    delivery:{content:'',revision:0},events:[],pending:null});
+    delivery:{content:'',revision:0},events:[],requests:[],pending:null});
   let current=fs.existsSync(file)?validate(JSON.parse(fs.readFileSync(file,'utf8')),fingerprint):initial();
   return {get:()=>clone(current),
     put(next) {
@@ -67,4 +84,4 @@ function createStore(directory,config) {
       current=clone(next);
     }};
 }
-module.exports={createStore,validate,binding,hash};
+module.exports={createStore,validate,binding,hash,MAX_REQUESTS,requestTarget};

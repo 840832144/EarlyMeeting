@@ -4,7 +4,15 @@
 - 指定测试群，本机持有数据，同一条卡片；User 直接验收、边验边改。
 - 保留现有应用、原模板及发送入口；测试群及两个正式群工作日 09:45 定时，各群独立。Subagents: none。
 
-## 最新增量：本人删除、醒目标题与逐日调度
+## 2026-09-08 并发提交修复
+
+代码审查确认：旧 `handle()` 在 `pending` 存在时直接拒绝其他人的正常提交；失败后旧内存队列的后续操作也可能因 `pending` 被跳过。修复为每群独立的持久队列，并在异步更新成功后重新读取最新状态，防止覆盖等待期间新排入的请求。同一行重复点击不重复入队；入队前预留行数及整卡容量；实际更新仍核对行版本和权限。结果未知时保留当前意图及后续队列，不宣称保存成功。
+
+最小验证：修改的 `meeting-service.cjs`、`meeting-store.cjs` 通过 Node 语法检查；完成请求到达、异步返回、原子保存及重启恢复路径的代码审查。未新增或运行自动测试、哈希比对、模拟员工提交或压测，不以语法检查替代并发实测。
+
+本机部署：STOP_VERIFIED 后仅替换两个脚本，代码备份留在受限目录；群配置和业务状态文件未手动修改。真实 HTTP101 / CONNECTED，groups=3 scheduled=3 time=09:45，三个群均 prefill=false / submit=owner / delete=owner；测试群及两个正式群依次 MEETING_RESUMED rows=1/10/9、MEETING_READY，无新发卡。该证据证明原卡恢复及服务可用；修复后真实多人同时提交尚未观测，不记为已验收。Subagents: none。
+
+## 历史增量：本人删除、醒目标题与逐日调度
 
 2026-09-08 恢复群2：User 要求群2恢复群1规则；读取配置确认原群2 all/all、prefill=false，群1默认 owner/owner；现有待确认操作为0。STOP_VERIFIED 后仅修改群2配置为 owner/owner、prefill=false，保留所有群标识、调度和状态文件。重启实际 HTTP101 / CONNECTED、groups=3 scheduled=3 time=09:45；三群 GROUP_OPTIONS 均 prefill=false submit=owner delete=owner，原消息分别 MEETING_RESUMED rows=1/8/6 / MEETING_READY，无重新发卡、自动测试或模拟操作。名单和权限申请流程随 User 最新决定暂停，未读取成员或调整飞书后台权限。Subagents: none。
 
