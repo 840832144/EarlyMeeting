@@ -1,11 +1,11 @@
 'use strict';
 const {randomUUID,randomBytes}=require('node:crypto');
-const {meetingCard,rowElement,deliveryElement,cardBudget,MAX_ROWS,MAX_CONTENT,SECTIONS}=require('./meeting-card.cjs');
+const {meetingCard,rowElement,deliveryElement,cardBudget,isEditing,LAYOUT_VERSION,MAX_ROWS,MAX_CONTENT,SECTIONS}=require('./meeting-card.cjs');
 const {hash,MAX_REQUESTS,requestTarget}=require('./meeting-store.cjs');
 const {diagnosis}=require('./probe.cjs');
 const toast=(content,type='info')=>({toast:{type,content}});
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const isDelivery=kind=>['save_delivery','clear_delivery'].includes(kind);
+const isDelivery=kind=>['save_delivery','clear_delivery','edit_delivery'].includes(kind);
 
 class MeetingService {
   constructor(config,store,api,output,{delay=250,now=Date.now}={}) {
@@ -15,7 +15,7 @@ class MeetingService {
   record(code,extra=''){this.output(`[${code}]${extra?' '+extra:''}`);}
   canModify(row,actor,kind) {
     return Boolean(row)&&(row.owner===actor||
-      (kind==='save'&&this.config.rowPermissions?.submit==='all')||
+      (['save','edit'].includes(kind)&&this.config.rowPermissions?.submit==='all')||
       (kind==='delete'&&this.config.rowPermissions?.delete==='all'));
   }
   async prepare() {
@@ -46,7 +46,7 @@ class MeetingService {
     }else this.record('MEETING_RESUMED',`same_message=true; rows=${s.rows.length}`);
     if(s.pending)await this.flush();
     s=this.store.get();
-    if(!s.pending && s.layoutVersion!==11) {
+    if(!s.pending && s.layoutVersion!==LAYOUT_VERSION) {
       if(!s.layoutPending) {
         // The only live legacy row was entered as 策划 by the User. Never infer
         // section from a person's identity or unknown department for bulk migration.
@@ -62,7 +62,7 @@ class MeetingService {
       try{reply=await this.api.updateLayout(s.cardId,s.layoutPending,meetingCard(s.rows,s.delivery));}
       catch(e){this.record('LAYOUT_UNCONFIRMED',diagnosis(e,'CALLBACK'));return false;}
       if(reply?.code!==0){this.record('LAYOUT_UNCONFIRMED',diagnosis(reply,'CALLBACK'));return false;}
-      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=11;this.store.put(s);
+      s.sequence=s.layoutPending.sequence;s.layoutPending=null;s.layoutVersion=LAYOUT_VERSION;this.store.put(s);
       this.record('LAYOUT_UPDATED',`same_message=true; rows=${s.rows.length}`);
     }
     if(this.store.get().pending)return false;
@@ -79,7 +79,7 @@ class MeetingService {
     if(!/^ou_[A-Za-z0-9_-]{1,100}$/.test(e?.operator?.open_id||'') || e?.action?.tag!=='button')
       return {error:'无法核对本次操作，请重新点击按钮。'};
     const value=e.action.value;
-    if(!value || !['add','save','delete','save_delivery','clear_delivery'].includes(value.op))return {error:'请使用本轮卡片上的按钮。'};
+    if(!value || !['add','save','edit','delete','save_delivery','clear_delivery','edit_delivery'].includes(value.op))return {error:'请使用本轮卡片上的按钮。'};
     const eventId=payload?.header?.event_id;
     // Token is hashed only in memory if the dispatcher supplies no event ID.
     const nonce=typeof eventId==='string'?eventId:e.token;
@@ -94,6 +94,8 @@ class MeetingService {
         return {error:'今日交付已被更新，请查看最新内容后再操作。'};
       request.revision=value.revision;
       if(value.op==='clear_delivery')return request;
+      if(value.op==='edit_delivery')return isEditing(delivery)?{error:'今日交付已在编辑中，请在输入框填写后提交。'}:request;
+      if(!isEditing(delivery))return {error:'请先点击今日交付的“编辑”，再修改提交。'};
       const content=e.action.form_value?.delivery_content;
       if(typeof content!=='string'||!content.trim()||content.length>MAX_CONTENT)
         return {error:`请填写今日交付（${MAX_CONTENT}字内），再提交。`};
@@ -103,13 +105,15 @@ class MeetingService {
       if(!Object.hasOwn(SECTIONS,value.section||''))return {error:'请选择策划或程序区域下的加号。'};
       request.section=value.section;
     }
-    if(value.op==='save'||value.op==='delete') {
+    if(['save','edit','delete'].includes(value.op)) {
       const row=state.rows.find(r=>r.id===value.row);
       if(!this.canModify(row,request.owner,value.op))return {error:'本群仅允许操作本人的行，或该行已删除。'};
       if(!Number.isSafeInteger(value.revision)||value.revision!==row.revision)
         return {error:'该行已更新，请使用最新卡片上的按钮。'};
       Object.assign(request,{row:row.id,revision:value.revision});
       if(value.op==='delete')return request;
+      if(value.op==='edit')return isEditing(row)?{error:'本行已在编辑中，请填写后提交。'}:request;
+      if(!isEditing(row))return {error:'请先点击本行的“编辑”，再修改提交。'};
       const form=e.action.form_value;
       const content=form?.[`content_${row.id}`];
       if(typeof content!=='string'||!content.trim()||content.length>MAX_CONTENT)
@@ -147,6 +151,7 @@ class MeetingService {
     }
     this.record('ACTION_QUEUED',`waiting=${s.requests.length}`);
     this.pump();
+    if(['edit','edit_delivery'].includes(request.kind))return toast('正在打开编辑，请等输入框出现后修改并提交。');
     if(isDelivery(request.kind))return toast(request.kind==='clear_delivery'
       ?'清空已排队，请等今日交付刷新。':'已排队，今日交付刷新后才表示提交完成。');
     return toast(request.kind==='add'?'添加已排队，请等待你的行出现。':request.kind==='delete'
@@ -158,10 +163,12 @@ class MeetingService {
     // The placeholder has the same byte length as a generated row ID; it is
     // only used for size estimation, never saved or sent to Feishu.
     for(const r of requests) {
-      if(isDelivery(r.kind))delivery={content:r.kind==='clear_delivery'?'':r.content,revision:delivery.revision+1};
+      if(isDelivery(r.kind))delivery={content:r.kind==='edit_delivery'?delivery.content:r.kind==='clear_delivery'?'':r.content,
+        editing:r.kind!=='save_delivery',revision:delivery.revision+1};
       else if(r.kind==='add')rows=[...rows,{id:'r000000000000',owner:r.owner,section:r.section,content:'',revision:0}];
       else if(r.kind==='delete')rows=rows.filter(row=>row.id!==r.row);
-      else rows=rows.map(row=>row.id===r.row?{...row,content:r.content,revision:row.revision+1}:row);
+      else rows=rows.map(row=>row.id===r.row?{...row,content:r.kind==='edit'?row.content:r.content,
+        editing:r.kind==='edit',revision:row.revision+1}:row);
     }
     return cardBudget(rows,delivery).valid;
   }
@@ -195,7 +202,8 @@ class MeetingService {
     if(isDelivery(request.kind)) {
       const previous=s.delivery||{content:'',revision:0};
       if(previous.revision!==request.revision)return this.finishRequest(request,'STALE_DELIVERY_REJECTED');
-      const delivery={content:request.kind==='clear_delivery'?'':request.content,revision:previous.revision+1};
+      const delivery={content:request.kind==='edit_delivery'?previous.content:request.kind==='clear_delivery'?'':request.content,
+        editing:request.kind!=='save_delivery',revision:previous.revision+1};
       if(!cardBudget(s.rows,delivery).valid)return this.finishRequest(request,'CARD_SIZE_LIMIT');
       s.pending={kind:request.kind,delivery,event:request.event,uuid:randomUUID(),sequence:s.sequence+1};
       this.store.put(s);return this.flush();
@@ -209,7 +217,8 @@ class MeetingService {
       const previous=s.rows.find(r=>r.id===request.row);
       if(!this.canModify(previous,request.owner,request.kind)||previous.revision!==request.revision)
         return this.finishRequest(request,'STALE_SAVE_REJECTED');
-      row=request.kind==='delete'?previous:{...previous,content:request.content,revision:previous.revision+1};
+      row=request.kind==='delete'?previous:{...previous,content:request.kind==='edit'?previous.content:request.content,
+        editing:request.kind==='edit',revision:previous.revision+1};
     }
     const nextRows=request.kind==='add'?[...s.rows,row]:request.kind==='delete'
       ?s.rows.filter(r=>r.id!==row.id):s.rows.map(r=>r.id===row.id?row:r);
@@ -240,10 +249,11 @@ class MeetingService {
     s.requests=(s.requests||[]).filter(r=>r.event!==p.event);
     this.store.put(s);
     if(isDelivery(p.kind)) {
-      this.record(p.kind==='clear_delivery'?'DELIVERY_CLEARED':'DELIVERY_SAVED','same_message=true; fields=1');
+      this.record(p.kind==='edit_delivery'?'DELIVERY_EDITING':p.kind==='clear_delivery'?'DELIVERY_CLEARED':'DELIVERY_SAVED',
+        `same_message=true; fields=${p.kind==='edit_delivery'?0:1}`);
       return true;
     }
-    this.record(p.kind==='add'?'ROW_ADDED':p.kind==='delete'?'ROW_DELETED':'ROW_SAVED',
+    this.record(p.kind==='edit'?'ROW_EDITING':p.kind==='add'?'ROW_ADDED':p.kind==='delete'?'ROW_DELETED':'ROW_SAVED',
       `rows=${s.rows.length}; same_message=true; fields=${p.kind==='save'?1:0}`);
     return true;
   }

@@ -2,21 +2,21 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
-const {MAX_ROWS,MAX_CONTENT,SECTIONS}=require('./meeting-card.cjs');
+const {MAX_ROWS,MAX_CONTENT,SECTIONS,LAYOUT_VERSION}=require('./meeting-card.cjs');
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 function binding(config){return hash(JSON.stringify([config.appId,config.chatId]));}
 const clone = value => JSON.parse(JSON.stringify(value));
 const MAX_REQUESTS=24;
 function requestTarget(request) {
-  return ['save_delivery','clear_delivery'].includes(request.kind)?'delivery':
+  return ['save_delivery','clear_delivery','edit_delivery'].includes(request.kind)?'delivery':
     request.kind==='add'?`add:${request.owner}`:`row:${request.row}`;
 }
 function validRequest(r) {
-  if(!r||!['add','save','delete','save_delivery','clear_delivery'].includes(r.kind)||
+  if(!r||!['add','save','edit','delete','save_delivery','clear_delivery','edit_delivery'].includes(r.kind)||
     !/^ou_[A-Za-z0-9_-]{1,100}$/.test(r.owner||'')||!/^[a-f0-9]{64}$/.test(r.event||''))return false;
   if(r.kind==='add')return Object.hasOwn(SECTIONS,r.section||'');
   if(!Number.isSafeInteger(r.revision)||r.revision<0)return false;
-  if(['save','delete'].includes(r.kind)&&!/^r[a-f0-9]{12}$/.test(r.row||''))return false;
+  if(['save','edit','delete'].includes(r.kind)&&!/^r[a-f0-9]{12}$/.test(r.row||''))return false;
   return !['save','save_delivery'].includes(r.kind)||
     (typeof r.content==='string'&&Boolean(r.content.trim())&&r.content.length<=MAX_CONTENT);
 }
@@ -26,11 +26,13 @@ function validRow(row) {
     (row.section===undefined||Object.hasOwn(SECTIONS,row.section)) &&
     (row.department===undefined||(typeof row.department==='string' && row.department.length<=160)) &&
     (row.departmentStatus===undefined||['ok','empty','unavailable'].includes(row.departmentStatus)) &&
+    (row.editing===undefined||typeof row.editing==='boolean') &&
     typeof row.content==='string' && row.content.length<=MAX_CONTENT &&
     Number.isSafeInteger(row.revision) && row.revision>=0;
 }
 function validDelivery(delivery) {
   return delivery && typeof delivery.content==='string' && delivery.content.length<=MAX_CONTENT &&
+    (delivery.editing===undefined||typeof delivery.editing==='boolean') &&
     Number.isSafeInteger(delivery.revision) && delivery.revision>=0;
 }
 function validate(state,fingerprint) {
@@ -52,8 +54,8 @@ function validate(state,fingerprint) {
   if(state.requests!==undefined&&(!Array.isArray(state.requests)||state.requests.length>MAX_REQUESTS||
     !state.requests.every(validRequest)||new Set(state.requests.map(r=>r.event)).size!==state.requests.length||
     new Set(state.requests.map(requestTarget)).size!==state.requests.length))throw new Error('LOCAL_QUEUE_INVALID');
-  if(state.pending && (!(['add','save','delete'].includes(state.pending.kind)?validRow(state.pending.row):
-      ['save_delivery','clear_delivery'].includes(state.pending.kind)&&validDelivery(state.pending.delivery)) ||
+  if(state.pending && (!(['add','save','edit','delete'].includes(state.pending.kind)?validRow(state.pending.row):
+      ['save_delivery','clear_delivery','edit_delivery'].includes(state.pending.kind)&&validDelivery(state.pending.delivery)) ||
     state.pending.sequence!==state.sequence+1 || !/^[a-f0-9-]{36}$/.test(state.pending.uuid||'') ||
     !/^[a-f0-9]{64}$/.test(state.pending.event||'')))throw new Error('LOCAL_STATE_INVALID');
   if(state.layoutPending && (state.layoutPending.sequence!==state.sequence+1 ||
@@ -68,7 +70,7 @@ function createStore(directory,config) {
   const fingerprint=binding(config);
   // Only a new group/day state gets roster rows. Once persisted, restarts and
   // retries keep that snapshot, including any rows the group has deleted.
-  const initial=()=>({version:1,layoutVersion:11,binding:fingerprint,stage:'new',createdAt:Date.now(),
+  const initial=()=>({version:1,layoutVersion:LAYOUT_VERSION,binding:fingerprint,stage:'new',createdAt:Date.now(),
     sequence:0,rows:config.prefill?.enabled?Object.keys(SECTIONS).flatMap(section=>
       config.prefill[section].map(member=>({id:'r'+crypto.randomBytes(6).toString('hex'),
         owner:member.open_id,section,content:'',revision:0}))):[],
