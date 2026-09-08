@@ -5,11 +5,15 @@ const {MeetingSchedule}=require('./meeting-schedule.cjs');
 const {createSession}=require('./session.cjs');
 const {diagnosticAgent}=require('./transport.cjs');
 const {createApi}=require('./meeting-api.cjs');
+const {createAi}=require('./meeting-ai.cjs');
 async function main() {
   const session=createSession(path.join(__dirname,'.local','meeting'));
   const output=session.output;
   let config;
   try{config=readConfig(process.env);}catch{output('[CONFIG_ERROR] 请检查本机配置。');session.finish();return;}
+  try{config.deliveryAi=createAi(path.join(__dirname,'.local','meeting'));
+    output(config.deliveryAi?'[AI_ENABLED] 今日交付在提交后异步识别。':'[AI_DISABLED] 今日交付使用本机明确标记规则，未调用模型。');}
+  catch{config.deliveryAi=null;output('[AI_CONFIG_INVALID] AI配置无效；晨会保存继续使用本机规则。');}
   for(const key of ['EARLYMEETING_APP_ID','EARLYMEETING_APP_SECRET','EARLYMEETING_TEST_CHAT_ID'])delete process.env[key];
   const Lark=require('@larksuiteoapi/node-sdk');
   const silent=Object.fromEntries(['trace','debug','info','warn','error'].map(k=>[k,()=>{}]));

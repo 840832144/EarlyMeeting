@@ -8,17 +8,24 @@ function binding(config){return hash(JSON.stringify([config.appId,config.chatId]
 const clone = value => JSON.parse(JSON.stringify(value));
 const MAX_REQUESTS=24;
 function requestTarget(request) {
+  if(request.kind==='delivery_result')return `delivery:${request.row}`;
   return ['save_delivery','clear_delivery','edit_delivery'].includes(request.kind)?'delivery':
     request.kind==='add'?`add:${request.owner}`:`row:${request.row}`;
 }
 function validRequest(r) {
-  if(!r||!['add','save','edit','delete','save_delivery','clear_delivery','edit_delivery'].includes(r.kind)||
+  if(!r||!['add','save','edit','delete','save_delivery','clear_delivery','edit_delivery','delivery_result'].includes(r.kind)||
     !/^ou_[A-Za-z0-9_-]{1,100}$/.test(r.owner||'')||!/^[a-f0-9]{64}$/.test(r.event||''))return false;
   if(r.kind==='add')return Object.hasOwn(SECTIONS,r.section||'');
+  if(r.kind==='delivery_result')return /^r[a-f0-9]{12}$/.test(r.row||'')&&validRowDelivery(r.result)&&r.result.status!=='pending';
   if(!Number.isSafeInteger(r.revision)||r.revision<0)return false;
   if(['save','edit','delete'].includes(r.kind)&&!/^r[a-f0-9]{12}$/.test(r.row||''))return false;
   return !['save','save_delivery'].includes(r.kind)||
     (typeof r.content==='string'&&Boolean(r.content.trim())&&r.content.length<=MAX_CONTENT);
+}
+function validRowDelivery(d) {
+  return d&&/^[a-f0-9-]{36}$/.test(d.submissionId||'')&&['pending','ready','failed'].includes(d.status)&&
+    Array.isArray(d.tasks)&&d.tasks.length<=20&&d.tasks.every(t=>typeof t==='string'&&t.length>0&&t.length<=300)&&
+    d.tasks.join('').length<=300;
 }
 function validRow(row) {
   return row && /^r[a-f0-9]{12}$/.test(row.id) && /^ou_[A-Za-z0-9_-]{1,100}$/.test(row.owner) &&
@@ -27,6 +34,7 @@ function validRow(row) {
     (row.department===undefined||(typeof row.department==='string' && row.department.length<=160)) &&
     (row.departmentStatus===undefined||['ok','empty','unavailable'].includes(row.departmentStatus)) &&
     (row.editing===undefined||typeof row.editing==='boolean') &&
+    (row.deliveryResult===undefined||validRowDelivery(row.deliveryResult)) &&
     typeof row.content==='string' && row.content.length<=MAX_CONTENT &&
     Number.isSafeInteger(row.revision) && row.revision>=0;
 }
@@ -54,7 +62,7 @@ function validate(state,fingerprint) {
   if(state.requests!==undefined&&(!Array.isArray(state.requests)||state.requests.length>MAX_REQUESTS||
     !state.requests.every(validRequest)||new Set(state.requests.map(r=>r.event)).size!==state.requests.length||
     new Set(state.requests.map(requestTarget)).size!==state.requests.length))throw new Error('LOCAL_QUEUE_INVALID');
-  if(state.pending && (!(['add','save','edit','delete'].includes(state.pending.kind)?validRow(state.pending.row):
+  if(state.pending && (!(['add','save','edit','delete','delivery_result'].includes(state.pending.kind)?validRow(state.pending.row):
       ['save_delivery','clear_delivery','edit_delivery'].includes(state.pending.kind)&&validDelivery(state.pending.delivery)) ||
     state.pending.sequence!==state.sequence+1 || !/^[a-f0-9-]{36}$/.test(state.pending.uuid||'') ||
     !/^[a-f0-9]{64}$/.test(state.pending.event||'')))throw new Error('LOCAL_STATE_INVALID');

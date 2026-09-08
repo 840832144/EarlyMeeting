@@ -7,7 +7,7 @@
 - Priority：EarlyMeeting 当前首要步骤；不改变其他项目优先级。
 - Execution repository：840832144/EarlyMeeting
 - Project key：EARLYMEETING，已通过正式 allocator 验证。
-- Status：User 验收中 / 待 Review；正式 [TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)，未标记 Done。
+- Status：In Progress — DeepSeek 自动交付接入，等待本机 API Key；正式 [TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)，未标记 Done。
 - 完整范围：[CURRENT_DIRECTION.md](../docs/CURRENT_DIRECTION.md)
 - 现场状态：[STATUS.md](../STATUS.md)
 
@@ -16,6 +16,10 @@
 本 Gate 已完成：AI-Workspace main@1dd6de3 完整 Registry 为 13 canonical / 0 collision / valid；全部远端目标防重无同目标 Task；独立 worktree 由 Approved Candidate / remote-CAS allocator 分配 TASK-0028，重建后为 14 canonical / 0 collision / valid。准备 commit a68b663 已推送；reservation pending-main，Review 后才合并并 finalize。没有复用其他任务预约。
 
 ## 当前三区域实现与唯一下一步
+
+2026-09-08 当前 v13 增量：User 指定先用 DeepSeek，每次个人记录成功提交及编辑后重新提交均抽取明确标记的今日交付；按原行本人 @ 汇总，有新结果则替换、成功空结果则移除，删除个人行同步移除。保留策划/程序行与编辑交互，取消交付手填框；旧手填字段只留本机历史，不归给猜测的人员。模型调用与保存队列分开，结果按 submissionId 校验后排入原群队列，丢弃过期或已删除行的结果。失败保留已保存记录与旧汇总并显示待更新。各群隔离和09:45规则不变。
+
+已准备本机 `.local/meeting/ai.json`，DeepSeek 官方 endpoint / deepseek-v4-flash 已配置，只等 User 本机填写 API Key；尚未调用模型、部署 v13 或声称验收。唯一下一步：本机配置完成后，确认旧版队列无待确认项，备份并升级现有卡片，取得仅状态码及数量的实际结果，提交等待 Review。具体操作见 [MEETING.md](../tools/callback-test/MEETING.md)。不发送新消息，不模拟员工点击，不运行额外测试。Subagents: none。下方 v12 和共享文本框叙述为历史。
 
 2026-09-08 最新交付 v12：按 User 截图提议，未提交时按钮为“提交”；成功后普通文字及“编辑”，点编辑恢复带原文的输入框。个人行本人权限、今日交付本群共享、删除、独立队列与09:45保留。编辑切换也持久化并递增版本，防止旧回调覆盖；成功保存后关闭编辑。三脚本语法检查通过；确认没有待确认意图或排队请求后更新代码，三群原卡真实 LAYOUT_UPDATED / MEETING_READY、rows=1/11/10，无重新发卡或模拟员工操作。新交互待实际使用反馈，Task Review。备份位于本机 `.local/meeting/code-backup-before-edit-mode/`，有 edit 意图或打开编辑状态时不能直接回退旧代码。Subagents: none。
 
