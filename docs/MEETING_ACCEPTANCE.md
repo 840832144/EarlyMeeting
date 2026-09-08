@@ -6,6 +6,8 @@
 
 ## 最新增量：本人删除、醒目标题与逐日调度
 
+2026-09-08 恢复群2：User 要求群2恢复群1规则；读取配置确认原群2 all/all、prefill=false，群1默认 owner/owner；现有待确认操作为0。STOP_VERIFIED 后仅修改群2配置为 owner/owner、prefill=false，保留所有群标识、调度和状态文件。重启实际 HTTP101 / CONNECTED、groups=3 scheduled=3 time=09:45；三群 GROUP_OPTIONS 均 prefill=false submit=owner delete=owner，原消息分别 MEETING_RESUMED rows=1/8/6 / MEETING_READY，无重新发卡、自动测试或模拟操作。名单和权限申请流程随 User 最新决定暂停，未读取成员或调整飞书后台权限。Subagents: none。
+
 正式群2预填准备：User 确认仅群2全员可提交/删除，提供策划3人、程序6人名单。新状态支持预建空行，首次创建前将行与发送意图持久化；重启复用原状态，姓名仍属名单原人，其他群保留 owner 权限。已做四个脚本的语法核对和 Git diff 检查；未新增自动测试、未模拟提交/删除、未提前发正式群卡片。只读匹配真实群成员返回 99991672，实际 required_scopes 为 im:chat:readonly / im:chat，仅请求 User 开通只读项，未返回或保存完整成员列表。部署后曾 TCP ETIMEDOUT，自动重连取得 HTTP 101 / CONNECTED、groups=3 scheduled=3，GROUP_1/2 submit=owner delete=owner，GROUP_3 submit=all delete=all；测试群原消息 rows=2 恢复。三个群 prefill=false，名单待匹配，不冒称已预建成功。Subagents: none。
 
 正式群2启用（2026-09-07）：User 在本机填写并回复“添加了”。已有两个群 ID 保持一致，唯一新增群 ID 格式及防重有效；User 修改的本机群名保留。无待确认操作，STOP_VERIFIED 后启用群2，start_date=2026-09-08。实际 HTTP 101 / CONNECTED / SCHEDULE_CONFIGURED groups=3 scheduled=3 time=09:45，测试群原消息 rows=2 / MEETING_READY；今天未向两个正式群补发。没有新增自动测试、模拟交互或成员查询；未来正式群发卡与准点触发未到时实测。原始配置、群名称及 ID 均不进入仓库。Subagents: none。

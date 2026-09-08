@@ -1,6 +1,6 @@
 # Codex Handoff｜EarlyMeeting 本机卡片回调接管
 
-- Date：2026-09-07
+- Date：2026-09-08
 - User decision：Approved
 - Owner：User / ChatGPT
 - Executor：Codex（已在目标 Windows 本机接管）
@@ -17,7 +17,7 @@
 
 ## 当前三区域实现与唯一下一步
 
-当前增量：正式群2按 User 指定的策划3人、程序6人预建新卡片空行；仅群2开放任意行提交和删除，其他群仍 owner。代码及本机 row_permissions=all/all 已部署；预填开关暂时关闭，官方只读成员接口实际返回 99991672，需要 im:chat:readonly，正在等待 User 开通。人员姓名及目标群标识只在 .local/meeting/prefill-request.json，不在 Git；唯一匹配成功后生成 prefill-resolved.json，再写入群2配置并启用。新名单不改已发送卡片，重启不重复建行；10:15 提醒继续暂停。只做语法/配置核对，没有模拟用户操作或新增自动测试。备份 .local/meeting/code-backup-before-prefill。Task In Progress。Subagents: none。
+2026-09-08 当前决定：User 要求正式群2恢复成群1规则，并确认现有卡片直接生效。已仅修改本机群2配置为 prefill=false、submit=owner、delete=owner；群名、ID、记录、今日交付和工作日09:45调度保留。当前程序以短暂重启加载配置，HTTP101 / CONNECTED，三群原消息恢复1/8/6行，未重新发卡；今日交付仍全群共用。预填名单匹配及新增只读权限流程已暂停，不再等待权限或运行 resolver；可选代码保留但不启用。没有自动测试、模拟交互或全局网络变更。Task Review，等待正式代码 Review。Subagents: none。
 
 两个正式群已启用：User 完成群2本机填写及添加后，群2沿用群1规则 enabled=true / schedule=true / start_date=2026-09-08。重启后 HTTP 101 / CONNECTED、groups=3 / scheduled=3 / time=09:45，测试群原消息两行恢复；两个正式群明天开始，今天未补发。User 已修改本机显示群名，本次按旧配置的既有群 ID 排除并识别唯一新增群，保留用户命名，不依赖固定“正式群1/2”文字识别。10:15 提醒继续暂停。最外层“编辑群配置.cmd”可直接打开配置，真实群名及 ID 不进入仓库。未来准点发送未到时实测，Task 继续 Review。Subagents: none。
 
