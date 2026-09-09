@@ -68,6 +68,12 @@ function validate(state,fingerprint) {
       ['save_delivery','clear_delivery','edit_delivery'].includes(state.pending.kind)&&validDelivery(state.pending.delivery)) ||
     state.pending.sequence!==state.sequence+1 || !/^[a-f0-9-]{36}$/.test(state.pending.uuid||'') ||
     !/^[a-f0-9]{64}$/.test(state.pending.event||'')))throw new Error('LOCAL_STATE_INVALID');
+  const recovery=state.pending?.recovery;
+  if(recovery!==undefined&&(!recovery||!['retrying','rejected','unknown'].includes(recovery.status)||
+    !Number.isSafeInteger(recovery.attempts)||recovery.attempts<1||
+    (recovery.code!==undefined&&(!Number.isSafeInteger(recovery.code)||recovery.code===0))||
+    (recovery.status==='retrying'&&(recovery.code!==200810||!Number.isFinite(recovery.nextAt)||recovery.nextAt<0))||
+    (recovery.status==='rejected'&&!Number.isSafeInteger(recovery.code))))throw new Error('LOCAL_RECOVERY_INVALID');
   if(state.layoutPending && (state.layoutPending.sequence!==state.sequence+1 ||
     !/^[a-f0-9-]{36}$/.test(state.layoutPending.uuid||'') || state.pending))throw new Error('LOCAL_STATE_INVALID');
   if(state.summaryVersion!==undefined&&(!Number.isSafeInteger(state.summaryVersion)||state.summaryVersion<1))

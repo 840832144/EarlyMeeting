@@ -98,7 +98,21 @@ class MeetingSchedule {
     for(let i=0;i<this.groups.length;i++) {
       if(this.stopped)return;
       const g=this.groups[i];
-      if(this.active.has(g.chat_id))continue;
+      if(this.active.has(g.chat_id)) {
+        const existing=this.active.get(g.chat_id);
+        // Resume only a known rejected update of the existing card. Never
+        // retry an uncertain create/send by constructing a fresh service.
+        if(!existing.ready&&existing.service.retryPreparationDue?.()) {
+          try {
+            existing.ready=await existing.service.prepare();
+            if(existing.ready)this.output(`[GROUP_${i+1}] [MEETING_READY] 本群原卡片已恢复。`);
+          }catch {
+            existing.service.fault=true;
+            this.output(`[GROUP_${i+1}] [MEETING_NOT_READY] 本群恢复失败，已保留提交待核对。`);
+          }
+        }
+        continue;
+      }
       const config={...this.config,chatId:g.chat_id,prefill:g.prefill,rowPermissions:g.row_permissions,
         deliveryAiEnabled:g.delivery_ai===true,deliveryAi:g.delivery_ai===true?this.config.deliveryAi:null};
       const dir=dayDirectory(this.directory,config,today.date);

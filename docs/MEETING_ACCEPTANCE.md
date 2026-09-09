@@ -1,5 +1,17 @@
 # 本人行晨会｜脱敏验收记录
 
+## 2026-09-09 队列结束唤醒与更新失败恢复
+
+Task：TASK-0028；执行者Codex；Subagents: none。User授权先修多人审查1/2并尝试核实3。`meeting-service.cjs`在worker退出时重新检查队列，修复“已排队”后无人处理；200810临时交互拒绝持久化为retrying，原UUID/sequence按1/2/5/15/60秒退避，之后每60秒重试，继续接收其他行至原队列上限。重试前先写unknown，超时不继承上一轮安全重试许可；其他明确拒绝保存错误码并提示，UUID/sequence冲突和无返回继续unknown，不丢弃正文或推进未知结果。重启中的原卡恢复也可继续临时失败，不创建第二个slot/新卡。
+
+最小复核：`node --test tools/callback-test/meeting-recovery.test.cjs`，10/10通过。使用虚构人员、内存状态和无网络API替身，只验证漏唤醒窗口、手填/AI群恢复、退避/停止、拒绝后超时、明确失败/冲突、重启续接、群隔离及未就绪slot恢复；没有模型请求或真实群模拟提交。线上未人为制造拒绝，因此未将离线结果冒称真实飞书拒绝恢复证据。
+
+现场：10:33 STOP_VERIFIED，群1为11行/11行有已保存内容，群2为8行/3行有已保存内容，均queued=0、pending=false；备份三个旧脚本到本机`.local/meeting/code-backup-before-queue-recovery/`后替换service/store/schedule。首次WebSocket握手ETIMEDOUT，SDK自动重连，10:34:26 HTTP101 / CONNECTED；groups=2、scheduled=2、weekdays=1-5、time=09:40，两个正式群均MEETING_RESUMED same_message=true / MEETING_READY，原11/8行、布局14/15保留。没有MEETING_SENT、LAYOUT_UPDATED或汇总刷新，未改网络/权限/凭据/群配置。当前接收程序持续运行；09:40未来定时仍不是到时实测。
+
+第3项：computer-use截图接口报`SetIsBorderRequired failed`，重试/重置后文字可读，但控件点击报`coordinate input geometry is unavailable`。未代填或修改记录。User当前不方便做真实草稿核实，故无结论、待反馈；保留稳定标识补丁，不改交互路线。1/2交Review，3以及原审查4/5未关闭。
+
+以下为历史验收记录。
+
 - Task：TASK-0028；日期：2026-09-07。
 - 指定测试群，本机持有数据，同一条卡片；User 直接验收、边验边改。
 - 保留现有应用、原模板及发送入口；测试群及两个正式群工作日 09:45 定时，各群独立。Subagents: none。

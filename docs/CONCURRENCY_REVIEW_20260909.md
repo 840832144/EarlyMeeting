@@ -1,5 +1,15 @@
 # 多人使用自查｜2026-09-09
 
+## 本轮修复状态（优先于下方原始审查快照）
+
+User批准先修1/2并尝试核实3。1/2代码已修复并部署到两个正式群；10项针对性离线检查通过，包括审查中的微任务到达窗口、两群模式下200810恢复、超时不循环、重启续接和群隔离。worker结束重新检查；临时拒绝按1/2/5/15/60秒退避，之后最多每60秒再试原意图，保留UUID/sequence与排队正文。明确拒绝、未知结果各有持久状态及点击提示，不丢弃提交；不将UUID/sequence冲突当成功，不自动跳过未知请求。不可自动修复的参数/权限等拒绝仍需维护者处理，未承诺所有错误都自动恢复。
+
+部署10:34真实CONNECTED、两群MEETING_READY，原消息11/8行恢复，未发送新卡或刷新布局；现场未人为触发200810，恢复分支证据为隔离的API替身检查。完整部署证据见[MEETING_ACCEPTANCE.md](MEETING_ACCEPTANCE.md)，复核入口为`node --test tools/callback-test/meeting-recovery.test.cjs`。
+
+第3项未闭环：本机computer-use截图接口失败；只读文字可用，但点击报`coordinate input geometry is unavailable`，未能进行真实输入。已请User做一次保留草稿/他人新增的最小核实，User回答“现在不方便核实”。没有据此判断成功或失败，也没有代填员工记录。Codex待真实客户端反馈继续核实，确认仍有问题再修；4/5此次未扩展。当前增量交Review，不标记全项修复。Subagents: none。
+
+## 原始只读审查快照
+
 - Task：TASK-0028；审查基线：ecbedbc；执行者：Codex；Subagents: none。
 - 自查结论：Needs changes。不是正式 Review 通过，也不将近期草稿标识补丁记为缺陷已解决。
 - 范围：实际桌面运行代码的输入、提交、队列、AI、故障恢复、容量与诊断；不修改业务代码、配置、运行进程或群卡片。

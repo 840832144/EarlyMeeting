@@ -9,18 +9,24 @@ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const isDelivery=kind=>['save_delivery','clear_delivery','edit_delivery'].includes(kind);
 
 class MeetingService {
-  constructor(config,store,api,output,{delay=250,now=Date.now,ai=config.deliveryAiEnabled===true?config.deliveryAi||null:null}={}) {
+  constructor(config,store,api,output,{delay=250,now=Date.now,retryDelays=[1000,2000,5000,15000,60000],ai=config.deliveryAiEnabled===true?config.deliveryAi||null:null}={}) {
     Object.assign(this,{config,store,api,output,delay,now,ai});
     this.autoDelivery=config.deliveryAiEnabled===true;
     this.layoutVersion=layoutVersion(config);
     this.queue=Promise.resolve();this.stopped=false;this.processing=false;this.fault=false;this.preparing=false;
     this.aiWork=Promise.resolve();this.aiRunning=false;this.aiAttempted=new Set();
+    this.retryDelays=retryDelays;this.retryTimer=null;
   }
   record(code,extra=''){this.output(`[${code}]${extra?' '+extra:''}`);}
   canModify(row,actor,kind) {
     return Boolean(row)&&(row.owner===actor||
       (['save','edit'].includes(kind)&&this.config.rowPermissions?.submit==='all')||
       (kind==='delete'&&this.config.rowPermissions?.delete==='all'));
+  }
+  retryPreparationDue() {
+    const s=this.store.get();
+    return this.preparing&&!this.stopped&&!this.fault&&s.stage==='sent'&&
+      s.pending?.recovery?.status==='retrying'&&s.pending.recovery.nextAt<=this.now();
   }
   async prepare() {
     this.preparing=true;
@@ -93,7 +99,12 @@ class MeetingService {
       s.sequence=intent.sequence;s.summaryVersion=SUMMARY_VERSION;s.summaryPending=null;this.store.put(s);
       this.record('DELIVERY_SUMMARY_REFRESHED','same_message=true');
     }
-    if(this.store.get().pending||this.store.get().summaryPending)return false;
+    // A known temporary rejection can recover without recreating the schedule
+    // slot. Do not make a card with unfinished layout/summary migrations ready.
+    s=this.store.get();
+    if(s.summaryPending||s.layoutPending||s.layoutVersion!==this.layoutVersion||
+      (this.autoDelivery&&s.summaryVersion!==SUMMARY_VERSION)||
+      (s.pending&&s.pending.recovery?.status!=='retrying'))return false;
     this.preparing=false;
     this.pump();
     this.pumpAi();
@@ -158,11 +169,17 @@ class MeetingService {
     const s=this.store.get();
     if(s.events.includes(request.event)){this.record('EVENT_DUPLICATE');return toast('该次操作已处理。');}
     // A persisted pending intent is normal while the FIFO worker awaits Feishu.
-    // Only a stopped worker with that intent means the result is unconfirmed.
-    if(s.pending&&!this.processing)return toast('上次保存结果待确认，队列已保留；请联系维护者处理后再提交。','warning');
+    // Backoff is normal queueing, not an unknown result. Keep accepting other
+    // rows up to the existing durable queue limit while recovery is scheduled.
+    if(s.pending&&!this.processing&&s.pending.recovery?.status!=='retrying')
+      return toast(s.pending.recovery?.status==='rejected'
+        ?`飞书拒绝更新（${s.pending.recovery.code}），提交已保留但尚未保存；请联系维护者。`
+        :'上次保存结果待确认，队列已保留；请联系维护者处理后再提交。','warning');
     const requests=s.requests||[];
     if(requests.some(r=>r.event===request.event||requestTarget(r)===requestTarget(request)))
-      return toast('这一行已有操作排队或正在保存，请等本行刷新后再操作。','warning');
+      return toast(s.pending?.recovery?.status==='retrying'
+        ?'飞书暂时忙，已保留提交并自动重试；本行刷新后才表示保存完成。'
+        :'这一行已有操作排队或正在保存，请等本行刷新后再操作。','warning');
     if(request.kind==='add' && s.rows.some(r=>r.owner===request.owner)) {
       const existing=s.rows.find(r=>r.owner===request.owner);
       this.record('ROW_EXISTS',`rows=${s.rows.length}`);return toast(`你已经在${SECTIONS[existing.section]}区有一行了。选错区域可先删除本行，再重新添加。`);
@@ -242,16 +259,38 @@ class MeetingService {
     }
   }
   pump() {
-    if(this.processing||this.fault||this.preparing||!(this.store.get().requests||[]).length)return;
+    if(this.processing||this.fault||this.preparing||this.stopped)return;
+    const s=this.store.get();
+    if(s.pending) {
+      const recovery=s.pending.recovery;
+      if(recovery?.status!=='retrying')return;
+      if(recovery.nextAt>this.now()) {
+        if(!this.retryTimer) {
+          this.retryTimer=setTimeout(()=>{this.retryTimer=null;this.pump();},recovery.nextAt-this.now());
+          this.retryTimer.unref?.();
+        }
+        return;
+      }
+    }else if(!(s.requests||[]).length)return;
+    clearTimeout(this.retryTimer);this.retryTimer=null;
     this.processing=true;
     this.queue=this.drain()
       .catch(e=>{this.fault=true;this.record('MEETING_FAULT',diagnosis(e,'CALLBACK'));})
-      .finally(()=>{this.processing=false;this.pumpAi();});
+      .finally(()=>{
+        this.processing=false;
+        // handle()/AI can enqueue after drain's final empty read but before
+        // this finally. Recheck both queues; pump's pending guard prevents spin.
+        this.pump();this.pumpAi();
+      });
   }
   async drain() {
-    while(!this.fault) {
+    while(!this.fault&&!this.stopped) {
       const s=this.store.get(),request=s.requests?.[0];
-      if(s.pending){this.record('QUEUE_PAUSED',`waiting=${s.requests?.length||0}`);return;}
+      if(s.pending) {
+        if(s.pending.recovery?.status!=='retrying'||s.pending.recovery.nextAt>this.now())return;
+        if(!await this.flush())return;
+        continue;
+      }
       if(!request)return;
       // ACK first, then serialize updates to this card; other groups have their own worker.
       await wait(this.delay);
@@ -304,6 +343,10 @@ class MeetingService {
   async flush() {
     let s=this.store.get();const p=s.pending;
     if(!p)return true;
+    const attempts=(p.recovery?.attempts||0)+1;
+    // Persist 'unknown' before each network attempt: a process crash or timeout
+    // must never inherit the previous known-rejection retry permission.
+    s.pending.recovery={status:'unknown',attempts};this.store.put(s);
     const nextRows=isDelivery(p.kind)?s.rows:p.kind==='add'?[...s.rows,p.row]:p.kind==='delete'
       ?s.rows.filter(row=>row.id!==p.row.id):s.rows.map(row=>row.id===p.row.id?p.row:row);
     let reply;
@@ -315,7 +358,18 @@ class MeetingService {
     if(reply?.code!==0) {
       // UUID conflict is NOT proof of a successful update. Keep the exact intent
       // and fail closed rather than incrementing sequence or creating duplicates.
-      this.record('UPDATE_UNCONFIRMED',diagnosis(reply,'CALLBACK'));return false;
+      s=this.store.get();
+      if(s.pending?.uuid!==p.uuid||s.pending.sequence!==p.sequence)throw new Error('PENDING_CHANGED');
+      const code=Number.isSafeInteger(reply?.code)?reply.code:null;
+      const retrying=code===200810;
+      const unknown=code===null||[200770,300317].includes(code);
+      const recovery={status:retrying?'retrying':unknown?'unknown':'rejected',attempts};
+      if(code!==null)recovery.code=code;
+      if(retrying)recovery.nextAt=this.now()+this.retryDelays[Math.min(attempts-1,this.retryDelays.length-1)];
+      s.pending.recovery=recovery;this.store.put(s);
+      this.record(retrying?'UPDATE_RETRY_SCHEDULED':unknown?'UPDATE_UNCONFIRMED':'UPDATE_REJECTED',
+        `code=${code===null?'missing':code}; attempts=${attempts}${retrying?`; delay_ms=${recovery.nextAt-this.now()}`:''}`);
+      return false;
     }
     // New callbacks may append requests while the API call is in flight. Merge
     // into the latest state so completing one update cannot erase those requests.
@@ -341,6 +395,11 @@ class MeetingService {
       `rows=${s.rows.length}; same_message=true; fields=${p.kind==='save'?1:0}`);
     return true;
   }
-  async stop(){this.stopped=true;await this.aiWork;await this.queue;}
+  async stop(){
+    this.stopped=true;clearTimeout(this.retryTimer);this.retryTimer=null;
+    await this.aiWork;await this.queue;
+    // In-flight update completes; not-yet-started requests remain durable for
+    // restart. A long retry cooldown must not prevent graceful shutdown.
+  }
 }
 module.exports={MeetingService};
