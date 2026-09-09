@@ -10,7 +10,7 @@ $names = @('EARLYMEETING_APP_ID','EARLYMEETING_APP_SECRET','EARLYMEETING_TEST_CH
 $old = @{}
 foreach ($name in $names) { $old[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 try {
-    if ($Mode -eq 'Meeting') { Write-Host 'EarlyMeeting 晨会（本人行保存/删除，多群工作日 09:45）' }
+    if ($Mode -eq 'Meeting') { Write-Host 'EarlyMeeting 晨会（本人行保存/删除，多群工作日定时）' }
     else { Write-Host 'EarlyMeeting 本机回调测试（不保存、不更新、不定时发送）' }
     Write-Host '请关闭本应用的其他回调测试进程，只运行一份。'
     $node = Get-Command node.exe -ErrorAction SilentlyContinue

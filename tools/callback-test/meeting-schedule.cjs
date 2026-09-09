@@ -11,13 +11,13 @@ function beijing(now=Date.now()) {
   return {date:d.toISOString().slice(0,10),weekday:d.getUTCDay(),minute:d.getUTCHours()*60+d.getUTCMinutes()};
 }
 const json=file=>JSON.parse(fs.readFileSync(file,'utf8').replace(/^\uFEFF/,''));
-function readGroups(directory,config) {
+function readSettings(directory,config) {
   const file=path.join(directory,'groups.json');
-  if(!fs.existsSync(file))fs.writeFileSync(file,JSON.stringify({version:1,timezone:'Asia/Shanghai',time:'09:45',
+  if(!fs.existsSync(file))fs.writeFileSync(file,JSON.stringify({version:1,timezone:'Asia/Shanghai',time:'09:40',
     weekdays:[1,2,3,4,5],groups:[{name:'测试群',chat_id:config.chatId,enabled:true,schedule:false,
       start_date:beijing().date}]},null,2),{flag:'wx',mode:0o600});
   const c=json(file);
-  if(c.version!==1||c.timezone!=='Asia/Shanghai'||c.time!=='09:45'||
+  if(c.version!==1||c.timezone!=='Asia/Shanghai'||typeof c.time!=='string'||!/^([01]\d|2[0-3]):[0-5]\d$/.test(c.time)||
     JSON.stringify(c.weekdays)!=='[1,2,3,4,5]'||!Array.isArray(c.groups)||c.groups.length>20)
     throw new Error('GROUP_CONFIG_INVALID');
   for(const g of c.groups) {
@@ -44,7 +44,12 @@ function readGroups(directory,config) {
   }
   const enabled=c.groups.filter(g=>g.enabled);
   if(new Set(enabled.map(g=>g.chat_id)).size!==enabled.length)throw new Error('GROUP_CONFIG_DUPLICATE');
-  return enabled;
+  const [hour,minute]=c.time.split(':').map(Number);
+  return {groups:enabled,time:c.time,minute:hour*60+minute};
+}
+function readGroups(directory,config) {return readSettings(directory,config).groups;}
+function scheduleDue(group,today,minute) {
+  return group.schedule&&today.weekday>=1&&today.weekday<=5&&today.minute>=minute&&today.date>=group.start_date;
 }
 function dayDirectory(directory,config,date) {return path.join(directory,'days',binding(config),date);}
 function migrateLegacy(directory,config,output) {
@@ -68,12 +73,12 @@ function migrateLegacy(directory,config,output) {
 class MeetingSchedule {
   constructor(directory,config,apiFactory,output,connected) {
     Object.assign(this,{directory,config,apiFactory,output,connected});
-    this.groups=readGroups(directory,config);
+    this.schedule=readSettings(directory,config);this.groups=this.schedule.groups;
     migrateLegacy(directory,config,output);
     this.active=new Map();this.day=null;this.stopped=false;this.work=null;
   }
   start() {
-    this.output(`[SCHEDULE_CONFIGURED] groups=${this.groups.length}; scheduled=${this.groups.filter(g=>g.schedule).length}; weekdays=1-5; time=09:45; timezone=Asia/Shanghai`);
+    this.output(`[SCHEDULE_CONFIGURED] groups=${this.groups.length}; scheduled=${this.groups.filter(g=>g.schedule).length}; weekdays=1-5; time=${this.schedule.time}; timezone=Asia/Shanghai`);
     this.groups.forEach((g,index)=>this.output(`[GROUP_${index+1}] [GROUP_OPTIONS] prefill=${Boolean(g.prefill?.enabled)}; planning=${g.prefill?.planning.length||0}; engineering=${g.prefill?.engineering.length||0}; submit=${g.row_permissions?.submit||'owner'}; delete=${g.row_permissions?.delete||'owner'}; delivery_ai=${g.delivery_ai===true}`));
     this.timer=setInterval(()=>{void this.tick();},15000);
     void this.tick();
@@ -98,7 +103,7 @@ class MeetingSchedule {
         deliveryAiEnabled:g.delivery_ai===true,deliveryAi:g.delivery_ai===true?this.config.deliveryAi:null};
       const dir=dayDirectory(this.directory,config,today.date);
       const exists=fs.existsSync(path.join(dir,'meeting-state.json'));
-      const due=g.schedule&&today.weekday>=1&&today.weekday<=5&&today.minute>=9*60+45&&today.date>=g.start_date;
+      const due=scheduleDue(g,today,this.schedule.minute);
       if(!exists&&!due)continue;
       const output=line=>this.output(`[GROUP_${i+1}] ${line}`);
       let slot;
@@ -129,4 +134,4 @@ class MeetingSchedule {
     for(const slot of this.active.values())await slot.service.stop();
   }
 }
-module.exports={MeetingSchedule,beijing,readGroups};
+module.exports={MeetingSchedule,beijing,readGroups,readSettings,scheduleDue};

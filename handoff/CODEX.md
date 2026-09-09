@@ -17,6 +17,8 @@
 
 ## 当前三区域实现与唯一下一步
 
+2026-09-09 追加：User把两个正式群从2026-09-10起的工作日发送时间改为北京时间09:40。已修正调度硬编码，读取顶层time；本机仅改该配置项，09:39/09:40、周末/禁用和无效时间的最小检查通过。STOP_VERIFIED后部署，真实CONNECTED、groups=2 time=09:40，今天原卡9/8行恢复、无重发或再次刷新布局。未来准点发送尚未实测；保持单进程运行。该增量与稳定标识补丁均交Review，客户端草稿保留仍待反馈。Subagents: none。
+
 2026-09-09 最新补丁：续接TASK-0028，User要求处理“别人新增行清掉正在输入的文字”并热更，追加提交按钮红框、成功后编辑蓝框。补齐输入框、按钮及固定区域element_id，保留逐行局部更新；不能用此结构改动冒称飞书已保证草稿留存。User允许刷新后STOP_VERIFIED，备份并替换meeting-card.cjs；10:03真实HTTP101 / CONNECTED，两正式群原卡8/8行恢复、LAYOUT_UPDATED same_message=true、MEETING_READY，Check为RUNNING；布局14/15，没有新消息或代提交。后台无法获取未提交草稿，不能拿旧内容代替。语法及相关结构检查通过，真实多人输入保留仍待使用反馈，Review而非Done。下一步据真实客户端反馈判断稳定标识是否足够；不要把本补丁写成最终根因已证实或缺陷已关闭。证据见MEETING_ACCEPTANCE.md，备份在本机.local/meeting/code-backup-before-stable-controls。Subagents: none。
 
 2026-09-08 最新增量：移除正式群2今日交付中的待更新占位；只有已提交内容且有实际交付才显示姓名，不将草稿或无结果人员列入。旧实际交付在新识别完成前保留，后台状态和重提/删除防护不变。三脚本语法检查通过，旧渲染1处占位、新渲染0处，3人的交付保留；STOP_VERIFIED后无待确认/排队意图，替换三脚本，真实CONNECTED、groups=2、正式群2 DELIVERY_SUMMARY_REFRESHED same_message=true。仅更新汇总组件，没有新消息、整卡刷新或追加模型调用。汇总刷新意图先持久化，准备阶段暂停AI/保存worker，防止启动时抢用更新序号；未知结果保留summaryPending，恢复时重试同一意图。备份在本机 `.local/meeting/code-backup-before-summary-cleanup/`。代码交Review，直接使用反馈，不新增验收流程。Subagents: none。
