@@ -1,5 +1,13 @@
 # 本人行晨会｜脱敏验收记录
 
+## 2026-09-10 两群补发与后续09:30调整
+
+上午User要求补发，检查为NOT_RUNNING、匹配进程0、两个启用群当天均无状态文件；启动后真实HTTP101 / CONNECTED，两群分别CARD_CREATED / MEETING_SENT / MEETING_READY。状态回读均stage=sent、不同message、pending=false、queued=0，单进程持续运行，没有清除旧记录或重复发送。
+
+User随后要求之后改为09:30。只修改本机groups.json顶层time，校验得到time=09:30 / minute=570 / enabled=2 / scheduled=2；工作日、群配置、日期防重与权限不变。同步默认值/示例及操作说明，无新增自动测试。STOP_VERIFIED后两群分别10/4行、无pending或requests；10:12:42真实HTTP101 / CONNECTED，SCHEDULE_CONFIGURED weekdays=1-5 time=09:30，两个群MEETING_RESUMED same_message=true / MEETING_READY，未新发或刷新布局。
+
+下一次按新时间发送为2026-09-11北京时间09:30，尚未到时实测。任务继续TASK-0028 / Review；草稿核实状态不变。Subagents: none。
+
 ## 2026-09-09 队列结束唤醒与更新失败恢复
 
 Task：TASK-0028；执行者Codex；Subagents: none。User授权先修多人审查1/2并尝试核实3。`meeting-service.cjs`在worker退出时重新检查队列，修复“已排队”后无人处理；200810临时交互拒绝持久化为retrying，原UUID/sequence按1/2/5/15/60秒退避，之后每60秒重试，继续接收其他行至原队列上限。重试前先写unknown，超时不继承上一轮安全重试许可；其他明确拒绝保存错误码并提示，UUID/sequence冲突和无返回继续unknown，不丢弃正文或推进未知结果。重启中的原卡恢复也可继续临时失败，不创建第二个slot/新卡。

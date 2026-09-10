@@ -1,6 +1,6 @@
 # Codex Handoff｜EarlyMeeting 本机卡片回调接管
 
-- Date：2026-09-09
+- Date：2026-09-10
 - User decision：Approved
 - Owner：User / ChatGPT
 - Executor：Codex（已在目标 Windows 本机接管）
@@ -16,6 +16,8 @@
 本 Gate 已完成：AI-Workspace main@1dd6de3 完整 Registry 为 13 canonical / 0 collision / valid；全部远端目标防重无同目标 Task；独立 worktree 由 Approved Candidate / remote-CAS allocator 分配 TASK-0028，重建后为 14 canonical / 0 collision / valid。准备 commit a68b663 已推送；reservation pending-main，Review 后才合并并 finalize。没有复用其他任务预约。
 
 ## 当前三区域实现与唯一下一步
+
+2026-09-10 最新运行调整：User要求之后改为09:30，两个正式群下一次在2026-09-11工作日北京时间09:30各发一张。本机只改groups.json顶层time，沿用可配置调度，示例/默认时间与操作说明同步。10:12 STOP_VERIFIED后两群无pending/requests，重启真实HTTP101 / CONNECTED / time=09:30 / 两群MEETING_READY，今日原卡10/4行恢复，无新发或布局更新。上午User要求补发时原进程未运行、当天两群无发送状态；已启动并各成功发送一张。这次时间调整不保证电脑关机/程序关闭时送达，也不启用系统自启或提醒。下次新时间准点送达尚未实测，草稿问题仍待核实，Task继续Review。Subagents: none。
 
 2026-09-09 最新修复：User批准先修审查1/2、尝试核实3。共用worker结束时重查队列，持久化区分retrying/rejected/unknown；仅官方200810自动退避重试原UUID/sequence，其他明确拒绝给出错误码、保留提交待处理，超时及UUID/sequence冲突不自动跳过。覆盖队列边界、两种群模式恢复、重启/关闭及群隔离的10项离线检查通过。STOP_VERIFIED后更新三个脚本，10:34真实HTTP101 / CONNECTED / 两群MEETING_READY，原卡11/8行、无排队或pending，未新发或刷新布局；仅首次WS握手超时，SDK自行重连恢复，未修改网络配置。第3项尝试computer-use，截图失败、文字可读但控件无操作几何；User回复现在不方便核实，保留未闭环，未更改填写方式。后续由Codex依据真实草稿保留结果继续第3项；当前1/2增量交Review，4/5未扩展。说明及证据均在EarlyMeeting。Subagents: none。
 

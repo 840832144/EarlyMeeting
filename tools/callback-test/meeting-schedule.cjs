@@ -13,7 +13,7 @@ function beijing(now=Date.now()) {
 const json=file=>JSON.parse(fs.readFileSync(file,'utf8').replace(/^\uFEFF/,''));
 function readSettings(directory,config) {
   const file=path.join(directory,'groups.json');
-  if(!fs.existsSync(file))fs.writeFileSync(file,JSON.stringify({version:1,timezone:'Asia/Shanghai',time:'09:40',
+  if(!fs.existsSync(file))fs.writeFileSync(file,JSON.stringify({version:1,timezone:'Asia/Shanghai',time:'09:30',
     weekdays:[1,2,3,4,5],groups:[{name:'测试群',chat_id:config.chatId,enabled:true,schedule:false,
       start_date:beijing().date}]},null,2),{flag:'wx',mode:0o600});
   const c=json(file);
