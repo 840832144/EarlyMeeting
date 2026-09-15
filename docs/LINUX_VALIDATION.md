@@ -1,6 +1,16 @@
 # EarlyMeeting｜Linux交接验证记录
 
-2026-09-15 本轮新增验证：一键维护、持久日志、分群已提交记录归档。Windows暂存源码中20项针对性检查通过（10队列、4清理、3运行、3维护/归档）；覆盖生效日期、群隔离、未确认正文排除、归档失败保留源数据后可重试、日志重启保留/轮转/脱敏，以及迁移保留operations配置。Linux新增CI待运行，以下17/17是前轮证据。SSH仅完成无认证握手；严格主机校验拒绝未知密钥，密码未发送，未取得服务器环境信息。Windows实例和正式群未操作。
+## 本次Linux维护增量实跑
+
+- 环境：Ubuntu24.04 GitHub Actions；真实Node24.20.0镜像与Docker Compose。仅虚构配置，容器禁网，没有生产App Secret或AI Key。
+- `start.sh` 对已有unknown待确认状态返回2，并确认业务容器未启动；没有清状态重发。
+- 两轮Compose启动及重建均进入真正的 `meeting.cjs`；禁网时不冒称已连接。`stop.sh` 返回 `STOP_VERIFIED`，容器退出0，session正常停止。
+- 原消息、sequence、unknown意图和队列持久保留；第二次重建后两次启动/停止事件都保留在 `data/logs/service.jsonl`，操作日志有停止结果，密钥哨兵未出现。
+- 明确通过标记：`SIGTERM_AND_PERSISTENCE_OK`、`OFFLINE_COMPOSE_CYCLE_1_OK`、`OFFLINE_COMPOSE_CYCLE_2_OK`、`PERSISTENT_LOG_AND_MAINTENANCE_SWITCH_OK`。
+- 归档的20项检查中，新增三项针对生效日期、两群隔离、已提交/未知结果区分、更新覆盖、先归档再清理、归档失败后重试、日志保留/轮转/脱敏；没有模拟真实员工或调用生产AI。
+- 未验证：公司Linux镜像构建/权限/网络、现场连接和真实卡片提交、Windows→Linux切换/回退、服务器重启自启、9月16日真实归档与09:30定时发送。
+
+2026-09-15 本轮新增验证：一键维护、持久日志、分群已提交记录归档。Windows暂存源码中20项针对性检查通过（10队列、4清理、3运行、3维护/归档）；覆盖生效日期、群隔离、未确认正文排除、归档失败保留源数据后可重试、日志重启保留/轮转/脱敏，以及迁移保留operations配置。运行代码[06c1305](https://github.com/840832144/EarlyMeeting/commit/06c1305a30e4a06187f58da6024e069a30e5a18e)在[Linux CI 34926919423](https://github.com/840832144/EarlyMeeting/actions/runs/34926919423)通过同一20项检查，并通过下述容器实跑；以下17/17是前轮证据。SSH仅完成无认证握手；严格主机校验拒绝未知密钥，密码未发送，未取得服务器环境信息。Windows实例和正式群未操作。
 
 - 日期：2026-09-15。
 - 正式任务：TASK-0028，Review；部署规格来自[PR #4指定留言](https://github.com/840832144/EarlyMeeting/pull/4#issuecomment-5673785774)。

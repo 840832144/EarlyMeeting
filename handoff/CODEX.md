@@ -1,6 +1,6 @@
 # Codex Handoff｜EarlyMeeting Windows运行与Linux技术交接
 
-2026-09-15 本轮续接：已完成一键启停、持久脱敏日志及2026-09-16起分群归档的代码；本地20项相关检查通过，Linux CI结果随后补记。[操作入口](../docs/LINUX_OPERATIONS.md)。SSH端点可达，尚未认证；技术未确认首次主机指纹，严格校验阻止发送密码。User随后修改Codex权限并要求重查，可达结果相同，身份核验仍未完成。未停止/替换Windows实例，未发送生产测试卡。下一步先确认服务器指纹，再只读检查目录和Docker；部署准备完成后约定维护窗口、停旧端、迁移当天原卡状态、仅启云端。日志和归档不得进入Git，源码继续PR #4；TASK-0028 In Progress，代码可Review但未宣称上线。Subagents: none。
+2026-09-15 本轮续接：已完成一键启停、持久脱敏日志及2026-09-16起分群归档的代码；运行代码06c1305的[Linux CI](https://github.com/840832144/EarlyMeeting/actions/runs/34926919423)通过20项检查及两轮Compose启停/重建；维护开关和持久日志实跑通过。[操作入口](../docs/LINUX_OPERATIONS.md)。SSH端点可达，尚未认证；技术未确认首次主机指纹，严格校验阻止发送密码。User随后修改Codex权限并要求重查，可达结果相同，身份核验仍未完成。未停止/替换Windows实例，未发送生产测试卡。下一步先确认服务器指纹，再只读检查目录和Docker；部署准备完成后约定维护窗口、停旧端、迁移当天原卡状态、仅启云端。日志和归档不得进入Git，源码继续PR #4；TASK-0028 In Progress，代码可Review但未宣称上线。Subagents: none。
 
 2026-09-15 最新交付方向：按[PR #4指定Linux任务留言](https://github.com/840832144/EarlyMeeting/pull/4#issuecomment-5673785774)完成现有服务Linux适配。技术接手唯一入口：[Linux交接说明](../docs/LINUX_HANDOFF.md)，验证结果见[Linux验证记录](../docs/LINUX_VALIDATION.md)。完整代码仍在codex/task-0028-local-callback / PR #4，最终代码0d4a70b已通过Linux CI 34922786869；17/17及两轮禁网Compose启停/重建通过。TASK-0028继续Review。公司云端尚未部署，本轮没有停止/更新Windows运行实例或向正式群发测试卡。下方保留此前Windows现场历史。
 
