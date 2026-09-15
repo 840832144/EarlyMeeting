@@ -1,5 +1,7 @@
 # 公司服务器：独立 Node + 用户级 systemd
 
+**当前已运行：2026-09-15经User确认，已从Windows正式切换。** 原两群卡片及当天记录已接续，云端CONNECTED/READY，Windows已停止并锁定一键启动。日常使用直接从下方“切换与日常操作”的状态/日志入口开始，不要重新执行首次准备或再次迁移。代码de8b267，详细实测及未验证项见[验证记录](LINUX_VALIDATION.md)。
+
 2026-09-15，TASK-0028。公司实际账号没有Docker和Node，有Ubuntu24.04/x86_64及用户级systemd，因此实际部署使用此入口；Docker Compose交付仍保留，两个运行模式不能同时启动。User已让技术确认SSH主机指纹，当前可正常认证登录。
 
 项目目录：`/home/mmog/pythonservice/earlymeeting`。代码、Node、依赖、配置、数据、日志和归档都在该目录内。系统仅登记本应用的用户服务链接，并启用当前账号的linger，使退出SSH后继续运行、开机可启动用户服务；不安装系统Node/Docker，不修改全局代理、防火墙、时区或TLS。
@@ -44,6 +46,29 @@ cd /home/mmog/pythonservice/earlymeeting
 正式切换后，Windows `.local/meeting/cloud-active.json` 标记阻止旧的一键启动误开第二个接收实例。回退必须先停云端、迁回**云端最新当天状态**，之后才由维护者移除标记并启动本机；不能只删标记重新启动。这个标记防误操作，不宣称可以阻止有人绕过启动器直接运行Node。
 
 归档从2026-09-16起放在 `data/archives/YYYY-MM-DD/`，规则详见[日志与归档说明](LINUX_OPERATIONS.md)。回退保留云端归档，不能用归档代替运行状态。
+
+## 必要时回退Windows（当前systemd部署）
+
+回退会中断服务，只在负责人确认维护窗口后执行。先让正在填写的人提交或复制草稿，再在服务器运行：
+
+```bash
+cd /home/mmog/pythonservice/earlymeeting
+./stop.sh
+# 必须先看到STOP_VERIFIED；导出目录必须是从未使用的新名称
+umask 077
+mkdir -p transfer
+EARLYMEETING_CONFIG_DIR="$PWD/config" \
+EARLYMEETING_DATA_DIR="$PWD/data" \
+EARLYMEETING_LOG_DIR="$PWD/data/logs" \
+./runtime/node/bin/node tools/callback-test/transfer.cjs export \
+  --output "$PWD/transfer/rollback-latest"
+```
+
+导出要显示 `exported=true`；若attention=true，先检查队列/未知结果，不跳过或删状态。通过公司批准的SSH/SFTP私下下载最新包。源/目标出现 `.next` 或传输跨北京时间午夜时，先由维护者核对，不覆盖了事。
+
+Windows保持停止，将最新包的 `config/config.json` 放到原 `.local/config.json`，将 `groups.json`、`ai.json`、`operations.json` 放到 `.local/meeting/`，将 `data/days/` 对应当天两群文件放到 `.local/meeting/days/`。先备份目标、只更新相同群/日期，不复制Linux的PID/session/锁；其他配置字段原样保留。Windows代码需先更新到支持operations的当前交付版本并按锁文件安装依赖，不能用旧源码处理新的归档设置。
+
+最后确认云端仍停、Windows状态检查通过，才由维护者移除 `.local/meeting/cloud-active.json` 并启动Windows。保留服务器已生成的归档与日志，不拿归档替代运行状态。实际回退尚未执行。
 
 ## 升级与卸载
 

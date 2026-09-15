@@ -1,5 +1,7 @@
 # EarlyMeeting｜当前状态
 
+2026-09-15 正式切换完成：技术确认SSH指纹后，User明确批准“可以，现在切换”。Windows正常停止并验证STOP_VERIFIED，迁移今天两群完整状态，云端用户级systemd启动真实晨会入口。再次独立SSH回查active/running、enabled、linger=yes、CONNECTED、两群READY（8/2行，queued=0、pending=none）；原消息和卡片标识均保留，MEETING_RESUMED=2，MEETING_SENT=0、CARD_CREATED=0。本机一键入口已被cloud-active标记拦截，避免误开第二份。实际运行代码de8b267，操作入口见[公司服务器维护](docs/LINUX_SYSTEMD.md)，证据见[Linux验证记录](docs/LINUX_VALIDATION.md)。两群工作日北京时间09:30及群2AI保留，2026-09-16起分群归档；真实云端员工回调、明日准点发送/归档、服务器重启与回退尚未验证。TASK-0028返回Review，未标记Done。Subagents: none。下方为此前阶段记录，以本段为当前状态。
+
 2026-09-15 追加云端维护与归档：User改由Codex执行公司Linux移植，限定允许目录；已增加一键启停/状态/日志、跨重启脱敏轮转日志，以及从2026-09-16起的分群每日归档。归档只收录成功提交，失败阻止对应旧日源文件清理；运行状态继续只留当天。说明见[维护入口](docs/LINUX_OPERATIONS.md)。最终运行代码06c1305在[Ubuntu24.04/Linux CI](https://github.com/840832144/EarlyMeeting/actions/runs/34926919423)通过20项相关检查；一键启动阻止未知结果、正常停止、两轮Compose重建、日志跨重启保留及脱敏轮转均通过。本轮仅SSH握手，主机指纹待技术确认，严格校验已在密码发送前停止；未登录、未停Windows、未向正式群发测试卡。TASK-0028续接In Progress，代码交Review、生产切换待核验与维护窗口。下方为前轮历史。Subagents: none。
 
 2026-09-15 Linux代码与交接完成：按[PR #4指定Linux任务留言](https://github.com/840832144/EarlyMeeting/pull/4#issuecomment-5673785774)完成现有服务Linux适配。技术接手唯一入口：[Linux交接说明](docs/LINUX_HANDOFF.md)，验证结果见[Linux验证记录](docs/LINUX_VALIDATION.md)。完整代码仍在codex/task-0028-local-callback / PR #4，最终代码0d4a70b已通过Ubuntu24.04/Linux CI：17/17，Compose两轮重建、单实例锁和SIGTERM退出通过（禁网虚构数据）。TASK-0028继续Review。公司云端尚未部署，本轮没有停止/更新Windows运行实例或向正式群发测试卡。下方保留此前Windows现场历史。
@@ -16,7 +18,7 @@
 | --- | --- |
 | 当前入口 | [晨会卡片一键操作](tools/callback-test/MEETING.md)、[当前方向](docs/CURRENT_DIRECTION.md)、[Handoff](handoff/CODEX.md) |
 | 正式准备 | Registry 15 canonical / 0 collision / valid；同目标仅 TASK-0028，续接未另占号，reservation pending-main |
-| 本机 | 桌面 EarlyMeeting-local-callback-test；Node 24.20.0 / SDK 1.73.3；沿用本机 JSON，数据目录 ACL 受限 |
+| 运行位置 | /home/mmog/pythonservice/earlymeeting；Node 24.20.0 / SDK 1.73.3。Windows旧副本及切换包仍受本机ACL保护，仅用于维护回退 |
 | 现有资产 | 原应用、原模板及模板发送入口保留；动态布局由 EarlyMeeting 构建 |
 | 发卡与保存 | 16:26 真实空卡片已发送；16:27 User 新增一行，16:28 保存原职位和内容，均为同一消息 |
 | 最终 UI | 策划、程序标题 24px 加粗；人员 80px、内容 340px、操作区 92px；填写时“提交 / 删除”，提交后普通文字及“编辑 / 删除”，长内容自动换行 |
@@ -28,7 +30,7 @@
 | 名单权限 | 名单匹配与 im:chat:readonly 开通流程已暂停，不再等待此权限；本轮不查询成员或改变后台权限 |
 | 部门读取 | User 已取消部门列及自动读取，通讯录查询实现已移除，不再依赖或申请部门字段权限 |
 | 本机保留 | 仅保留北京时间当天晨会状态；启动/跨天清理旧日和旧副本，今日pending与配置保留，飞书历史消息保留 |
-| 当前进程 | 重启后真实HTTP101 / CONNECTED，两群MEETING_READY。单进程，无系统自启 |
+| 当前进程 | Linux用户级systemd active/connected/ready；已启用账号linger及服务自启。本机停止并锁定一键启动；服务器重启效果尚未实测 |
 | 使用与收尾 | 清理14项针对性检查通过，群2原意图人工补试成功，代码与证据交Review；客户端草稿保留仍待核实 |
 | 连接诊断 | 本次重启 HTTP101 / CONNECTED；历史间歇 IPv4 TCP ETIMEDOUT 的具体网络设备/路由原因仍未确认 |
 | 定时与群 | 两个正式群周一至周五北京时间09:30每群每天一张；2026-09-15启动后两群已发，测试群关闭 |

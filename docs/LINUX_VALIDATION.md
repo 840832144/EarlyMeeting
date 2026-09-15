@@ -1,5 +1,20 @@
 # EarlyMeeting｜Linux交接验证记录
 
+## 2026-09-15 公司云端正式切换（当前）
+
+- 授权：技术确认SSH主机指纹；User明确回复“可以，现在切换”。先正常停止Windows，取得STOP_VERIFIED，再私下导出两群当天配置与完整状态；没有同时启动两台。
+- 实际运行代码：`de8b267`。公司Ubuntu24.04/x86_64，项目内Node24.20.0 / 既有SDK1.73.3，用户级systemd；公司无Docker，未安装系统Docker/Node。目录 `/home/mmog/pythonservice/earlymeeting`。
+- 首次启动：START_READY；重新建立独立SSH连接后再次只读回查，服务active/running、enabled、linger=yes、NRestarts=0、ExecMainStatus=0；running/connected/ready均true。
+- 两群状态：group1 rows=8、group2 rows=2；均ready，queued=0、pending=none；归档配置enabled、startDate=2026-09-16、errors=0，retentionErrors=0。行数是切换时快照，不代表之后不能变化。
+- 通过私密文件对照，原messageId/cardId在两群均保持相同，仅输出布尔结果与数量。云端脱敏事件MEETING_RESUMED=2、MEETING_READY=2、CONNECTED=1；MEETING_SENT=0、CARD_CREATED=0。没有新建、重发卡片或模拟正式群操作。
+- Windows正常启动入口实跑返回exit1 / CLOUD_ACTIVE，未启动旧服务；`.local/meeting/cloud-active.json` 防误开标记已保留。旧运行副本和当天切换包仅保存在受限本机目录，不上传Git。
+- 维护日志已在实际服务器生成并可读取。官方Node包安装、npm锁文件安装、systemd unit验证及链接、原配置检查均通过；Feishu长连接已实际建立，DeepSeek IPv4 HTTPS只读连通，无额外生产AI测试。
+- 最新代码的[Linux CI 34927676289](https://github.com/840832144/EarlyMeeting/actions/runs/34927676289)成功：20项相关检查、Compose镜像构建、两轮禁网启停/重建、持久日志检查；systemd脚本语法通过。CI与真实生产启动证据分开，不用禁网结果证明真实回调。
+- **仍未验证**：云端员工真实提交/编辑/删除及AI汇总、明日09:30每群一张、9月16日真实归档、服务器重启后恢复、实际回退。既有客户端草稿保留问题仍未取得真实核实结果。本次不声称所有并发或结果未知问题已解决。
+- TASK-0028：Review，未Done。Subagents: none。
+
+以下是前阶段CI和交接快照；其中“未部署/未切换/指纹待确认”只描述当时状态，已由上方当前记录替代。
+
 ## 本次Linux维护增量实跑
 
 - 环境：Ubuntu24.04 GitHub Actions；真实Node24.20.0镜像与Docker Compose。仅虚构配置，容器禁网，没有生产App Secret或AI Key。

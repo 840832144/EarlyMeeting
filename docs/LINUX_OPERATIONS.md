@@ -4,9 +4,9 @@ TASK-0028 / PR #4，2026-09-15 User 追加批准：由 Codex 使用公司提供�
 
 ## 部署位置与开关
 
-建议独立子目录 `/home/mmog/pythonservice/earlymeeting`，先检查是否被其他项目占用。当前尚未登录或在服务器创建目录；不要把建议路径当作已部署结果。
+实际已部署在 `/home/mmog/pythonservice/earlymeeting`，2026-09-15经User确认完成Windows→Linux切换。公司服务器没有Docker，已使用[独立Node + 用户级systemd](LINUX_SYSTEMD.md)，`.runtime-mode` 为 `systemd`。两群原卡接续，无新发卡。
 
-代码准备和首次切换按 [Linux 交接说明](LINUX_HANDOFF.md)。首次部署时 `.env` 的路径改为：
+当前systemd路径已在项目内的 `config/earlymeeting.service` 配置，不需要 `.env`。仅在以后选择Docker Compose部署时，才按[通用交接说明](LINUX_HANDOFF.md)设置 `.env`：
 
 ```dotenv
 EARLYMEETING_CONFIG_HOST_DIR=/home/mmog/pythonservice/earlymeeting/config
@@ -28,7 +28,7 @@ UID/GID 填实际维护账号的 `id -u` / `id -g`，配置与数据目录由该
 
 启停操作串行执行；相同数据目录的服务仍使用原内核文件锁。退出码0表示该命令成功；启动返回2可能是预检查发现待核实状态，或已启动但连接/群尚未就绪，必须看屏幕提示和 `status.sh`。退出码73表示已有启停操作或实例持锁。不要通过删除锁文件、旧状态、队列或重发卡来消除报错。
 
-`start.sh` 使用本机已经构建的镜像，不偷偷安装依赖或重建。升级前构建新镜像标签，停服后更新 `.env` 的标签再启动。Docker 的 `unless-stopped` 保留人工停服选择；Docker 随主机启动仍是服务器前置条件。系统重启恢复与现场连接必须实际验证，不能只凭此配置宣称通过。
+当前 `start.sh` 调用已登记的用户级systemd服务，不安装依赖。人工停止会取消该服务开机启动，重新启动会恢复；账号linger及服务enabled已验证，真实服务器重启尚未验证。若以后改用Compose，则使用事先构建的镜像和 `unless-stopped`；不能同时运行两个模式。
 
 ## 日志位置与内容
 
@@ -40,7 +40,7 @@ UID/GID 填实际维护账号的 `id -u` / `id -g`，配置与数据目录由该
 
 不记录密码、App Secret、AI Key、群/人员ID、晨会正文、原始回调、原始错误或完整SDK日志。晨会正文只出现在受控的状态与归档文件中。`OPS_LOG_WRITE_FAILED` 表示磁盘或权限需要处理；日志写入失败不把已经收到的提交丢掉。
 
-`STOPPED` 是程序正常收尾，`STOP_VERIFIED` 是开关确认退出；掉电/强杀可能没有前者，维护者结合下一次启动和容器退出码判断，不把缺失的日志补造为正常停止。容器配置错误发生在程序启动前时，启动命令会记录非零结果，应再看 `docker compose logs --tail 100` 的脱敏启动提示。
+`STOPPED` 是程序正常收尾，`STOP_VERIFIED` 是开关确认退出；掉电/强杀可能没有前者，维护者结合下一次启动和服务退出码判断，不把缺失的日志补造为正常停止。当前systemd在程序启动前出错时，用 `journalctl --user -u earlymeeting.service -n 100 --no-pager` 查看启动提示；Compose模式才使用 `docker compose logs --tail 100`。不要公开完整日志。
 
 ## 从9月16日起的归档
 
@@ -50,7 +50,7 @@ UID/GID 填实际维护账号的 `id -u` / `id -g`，配置与数据目录由该
 {"version":1,"archive":{"enabled":true,"start_date":"2026-09-16"}}
 ```
 
-未配置此文件时兼容旧版本，归档关闭；非法日期或结构会明确拒绝启动。没有修改正在运行的 Windows 副本。
+未配置此文件时兼容旧版本，归档关闭；非法日期或结构会明确拒绝启动。云端已配置该文件；Windows已停止，旧副本保留作为受控回退材料。
 
 归档存到 `data/archives/YYYY-MM-DD/`，每个群各自一对 `.json` 与 `.md` 文件。文件名是已有群绑定标识，不写真实群ID；文件内保留配置群名。JSON方便后续处理，Markdown可阅读。现有状态没有员工姓名文本，人员按飞书 `open_id` 保存，没有为归档新增通讯录权限或编造姓名。
 
@@ -64,9 +64,9 @@ UID/GID 填实际维护账号的 `id -u` / `id -g`，配置与数据目录由该
 
 ## 当前执行边界
 
-已能完成SSH握手并取得主机公钥，但尚未认证。首次未知主机密钥不能自动接受；需技术确认 `ssh_host_ed25519_key.pub` 指纹一致后，保存到项目专用known-hosts并继续登录，后续遇到变化立即拒绝。没有修改全局SSH信任、网络或TLS设置。
+SSH主机指纹经技术确认后固定在项目known-hosts，后续变化拒绝认证；未改全局SSH信任或TLS。已完成公司目录/账号权限/依赖/出站连接检查、Windows正常停止和两群当天状态迁移，云端真实CONNECTED/READY。应用仅设置IPv4地址优先，不修改全局网络配置。
 
-服务器目录、Docker权限/版本、出站网络、生产切换和下一次09:30发送尚未验证。切换前还需明确维护窗口，确认Windows停止后再转移最新当天状态，禁止两台同时连接。不在正式群发测试卡。实际证据持续更新到 [Linux验证记录](LINUX_VALIDATION.md)。
+云端真实员工提交/编辑/删除及AI结果、下一次09:30发送、9月16日归档、真实服务器重启和回退仍待实际发生。本机一键启动已锁定，不能直接开旧端。实测记录见[Linux验证记录](LINUX_VALIDATION.md)。
 
 参考：[Docker 重启策略](https://docs.docker.com/reference/compose-file/services/#restart)、[Paramiko 主机密钥校验](https://docs.paramiko.org/en/stable/api/client.html#paramiko.client.RejectPolicy)。
 

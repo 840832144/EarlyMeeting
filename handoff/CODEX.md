@@ -1,5 +1,9 @@
 # Codex Handoff｜EarlyMeeting Windows运行与Linux技术交接
 
+2026-09-15 正式切换完成：技术确认SSH指纹后，User明确批准“可以，现在切换”。Windows正常停止并验证STOP_VERIFIED，迁移今天两群完整状态，云端用户级systemd启动真实晨会入口。再次独立SSH回查active/running、enabled、linger=yes、CONNECTED、两群READY（8/2行，queued=0、pending=none）；原消息和卡片标识均保留，MEETING_RESUMED=2，MEETING_SENT=0、CARD_CREATED=0。本机一键入口已被cloud-active标记拦截，避免误开第二份。实际运行代码de8b267，操作入口见[公司服务器维护](../docs/LINUX_SYSTEMD.md)，证据见[Linux验证记录](../docs/LINUX_VALIDATION.md)。两群工作日北京时间09:30及群2AI保留，2026-09-16起分群归档；真实云端员工回调、明日准点发送/归档、服务器重启与回退尚未验证。TASK-0028返回Review，未标记Done。Subagents: none。下方为此前阶段记录，以本段为当前状态。
+
+唯一下一步：技术按维护入口接管当前运行实例，Review代码和交接；正常使用中观察尚未验证项，不为验证重新发卡或重启服务。Idea/Memory Check：当前Task内的部署收尾，直接更新Task/Status/Handoff，不新建产品方向、Candidate或Future Task。
+
 2026-09-15 本轮续接：已完成一键启停、持久脱敏日志及2026-09-16起分群归档的代码；运行代码06c1305的[Linux CI](https://github.com/840832144/EarlyMeeting/actions/runs/34926919423)通过20项检查及两轮Compose启停/重建；维护开关和持久日志实跑通过。[操作入口](../docs/LINUX_OPERATIONS.md)。SSH端点可达，尚未认证；技术未确认首次主机指纹，严格校验阻止发送密码。User随后修改Codex权限并要求重查，可达结果相同，身份核验仍未完成。未停止/替换Windows实例，未发送生产测试卡。下一步先确认服务器指纹，再只读检查目录和Docker；部署准备完成后约定维护窗口、停旧端、迁移当天原卡状态、仅启云端。日志和归档不得进入Git，源码继续PR #4；TASK-0028 In Progress，代码可Review但未宣称上线。Subagents: none。
 
 2026-09-15 最新交付方向：按[PR #4指定Linux任务留言](https://github.com/840832144/EarlyMeeting/pull/4#issuecomment-5673785774)完成现有服务Linux适配。技术接手唯一入口：[Linux交接说明](../docs/LINUX_HANDOFF.md)，验证结果见[Linux验证记录](../docs/LINUX_VALIDATION.md)。完整代码仍在codex/task-0028-local-callback / PR #4，最终代码0d4a70b已通过Linux CI 34922786869；17/17及两轮禁网Compose启停/重建通过。TASK-0028继续Review。公司云端尚未部署，本轮没有停止/更新Windows运行实例或向正式群发测试卡。下方保留此前Windows现场历史。

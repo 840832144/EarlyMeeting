@@ -1,8 +1,8 @@
 # EarlyMeeting｜Linux 技术接手入口
 
-2026-09-15 最新维护增量见[一键启停、日志与归档](LINUX_OPERATIONS.md)。User已提供允许目录并改由Codex执行移植；首次SSH指纹待技术确认，尚未登录或切换。下面保留完整基础部署与回退步骤；实际路径应使用允许目录内的独立子目录，示例 `/srv` 路径不是本次公司的已部署路径。运行状态只留当天；从2026-09-16起的已提交记录另行归档。
+2026-09-15已完成公司云端部署和正式切换，User已明确授权停止Windows。**当前公司服务器维护请先读[独立Node + systemd入口](LINUX_SYSTEMD.md)**，实际目录为 `/home/mmog/pythonservice/earlymeeting`；本页后续为Docker Compose部署/迁移参考，示例 `/srv` 路径和Docker命令不适用于当前运行实例。
 
-本轮交付现有晨会服务的 Docker Compose 版本，续接 **TASK-0028 / PR #4**。公司技术负责服务器部署与正式切换。本轮没有停止 User 的 Windows 机器人，没有使用正式群做云端测试，也没有购买服务器或加入采集器。
+续接 **TASK-0028 / PR #4**。原两群今天卡片及状态完整接续，无测试发卡；Windows已停止并加启动保护。运行状态继续只留当天，从2026-09-16起单独归档已提交记录。实际证据与边界见[Linux验证记录](LINUX_VALIDATION.md)，日志/归档见[维护说明](LINUX_OPERATIONS.md)。
 
 ## 1. 获取完整项目
 
@@ -90,7 +90,7 @@ docker compose restart meeting
 
 ## 4. Windows → Linux 正式切换
 
-建议晨会结束后安排短维护窗口。本轮Codex没有执行以下生产切换。
+以下为后续迁移时的通用维护窗口步骤。本次已在User确认后完成切换，实际使用systemd，详见专用入口；不要重复执行。
 
 1. 技术先完成拉取、镜像构建、服务器目录和出站网络准备。保持原应用权限、机器人群成员及回调订阅；长连接模式不需修改公网回调地址。
 2. 请群成员暂停提交，正在输入的内容先自行提交或复制留底。维护者在旧Windows目录双击 `STOP_MEETING.cmd`，再用 `CHECK_MEETING.cmd` 确認 `NOT_RUNNING`；日志应有 `STOP_VERIFIED`。不能仅关闭窗口后假定停止。
@@ -102,7 +102,7 @@ node .\tools\callback-test\transfer.cjs export `
   --output 'C:\Users\admin\Desktop\EarlyMeeting-private-transfer'
 ```
 
-目标必须不存在。工具只导出 `config/config.json`、`groups.json`、存在时的 `ai.json`，、可选 `config/operations.json`，以及两个启用群**北京时间当天**的状态文件；保持字节内容，排除旧PID、session、STOP、锁、日志及历史数据。存在unknown/pending会原样保留并提示attention；不复制或解析客户端草稿。不要运行旧备份导出工具代替此工具。
+目标必须不存在。工具只导出 `config/config.json`、`groups.json`、存在时的 `ai.json`、可选 `config/operations.json`，以及两个启用群**北京时间当天**的状态文件；保持字节内容，排除旧PID、session、STOP、锁、日志及历史数据。存在unknown/pending会原样保留并提示attention；不复制或解析客户端草稿。不要运行旧备份导出工具代替此工具。
 
 4. 通过公司批准的SSH/SFTP等私密渠道将整个导出包交给技术。不要发到群聊或Git。技术把包放在受控路径，例如 `/srv/earlymeeting-transfer/incoming`。以下命令仅针对尚未启用的新目录；目标已有 `data/days` 时先停止并确认其归属，不覆盖：
 
