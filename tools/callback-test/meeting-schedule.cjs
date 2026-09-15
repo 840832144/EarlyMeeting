@@ -4,6 +4,7 @@ const path=require('node:path');
 const {createStore,binding,validate,hash}=require('./meeting-store.cjs');
 const {MeetingService}=require('./meeting-service.cjs');
 const {MAX_ROWS,SECTIONS}=require('./meeting-card.cjs');
+const {cleanupHistory}=require('./meeting-retention.cjs');
 
 // Fixed UTC+8, independent of the Windows clock's display timezone.
 function beijing(now=Date.now()) {
@@ -76,6 +77,7 @@ class MeetingSchedule {
     this.schedule=readSettings(directory,config);this.groups=this.schedule.groups;
     migrateLegacy(directory,config,output);
     this.active=new Map();this.day=null;this.stopped=false;this.work=null;
+    this.cleanedDay=null;this.cleanupRetryAt=0;
   }
   start() {
     this.output(`[SCHEDULE_CONFIGURED] groups=${this.groups.length}; scheduled=${this.groups.filter(g=>g.schedule).length}; weekdays=1-5; time=${this.schedule.time}; timezone=Asia/Shanghai`);
@@ -84,7 +86,7 @@ class MeetingSchedule {
     void this.tick();
   }
   tick() {
-    if(this.stopped||!this.connected()||this.work)return this.work||Promise.resolve();
+    if(this.stopped||this.work)return this.work||Promise.resolve();
     this.work=this.run().catch(()=>{this.output('[SCHEDULE_STATE_ERROR] 本机状态待核对；未自动清空或重发。');})
       .finally(()=>{this.work=null;});
     return this.work;
@@ -95,6 +97,17 @@ class MeetingSchedule {
       for(const slot of this.active.values())await slot.service.stop();
       this.active.clear();this.day=today.date;
     }
+    if(this.cleanedDay!==today.date&&Date.now()>=this.cleanupRetryAt) {
+      try {
+        const result=cleanupHistory(this.directory,today.date);
+        if(!result.errors)this.cleanedDay=today.date;
+        this.output(`[RETENTION_${result.errors?'INCOMPLETE':'DONE'}] date=${today.date}; files=${result.files}; days=${result.days}; errors=${result.errors}; today_preserved=true`);
+      }catch{this.output('[RETENTION_INCOMPLETE] 历史清理未完成；当天数据保留。');}
+      this.cleanupRetryAt=Date.now()+60000;
+    }
+    // Retention runs offline as well. Sending/resuming cards still requires the
+    // live connection, and old workers are stopped before their files are removed.
+    if(!this.connected()||this.stopped)return;
     for(let i=0;i<this.groups.length;i++) {
       if(this.stopped)return;
       const g=this.groups[i];

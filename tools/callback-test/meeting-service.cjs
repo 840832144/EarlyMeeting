@@ -55,7 +55,12 @@ class MeetingService {
         this.record('MESSAGE_SEND_UNCONFIRMED',diagnosis(reply,'SEND'));return false;}
       s.messageId=reply.data.message_id;s.stage='sent';this.store.put(s);this.record('MEETING_SENT',`same_message=true; rows=${s.rows.length}`);
     }else this.record('MEETING_RESUMED',`same_message=true; rows=${s.rows.length}`);
-    if(s.pending)await this.flush();
+    if(s.pending) {
+      // Starting maintenance must not replay today's uncertain write. Only a
+      // definite temporary refusal is eligible for automatic recovery.
+      if(s.pending.recovery?.status==='retrying')await this.flush();
+      else this.record('UPDATE_HELD','当天待确认或被拒绝的提交已保留，未自动重放。');
+    }
     s=this.store.get();
     const needsRecognition=row=>row.content&&(!row.deliveryResult||
       (row.deliveryResult.policyVersion!==this.ai?.policyVersion&&

@@ -147,7 +147,8 @@ test('not-ready schedule slot resumes a busy update before layout migration',asy
   assert.equal(await resumed.service.prepare(),false);
   const slot={service:resumed.service,ready:false};
   const scheduler=Object.assign(Object.create(MeetingSchedule.prototype),{day:beijing().date,
-    active:new Map([['oc_fixture',slot]]),groups:[{chat_id:'oc_fixture'}],output:()=>{}});
+    active:new Map([['oc_fixture',slot]]),groups:[{chat_id:'oc_fixture'}],output:()=>{},connected:()=>true,
+    cleanedDay:beijing().date,cleanupRetryAt:0});
   blocked=false;await sleep(15);await scheduler.run();
   assert.equal(slot.ready,true);assert.equal(scheduler.active.size,1);
   assert.equal(f.store.get().rows[0].content,'fixture 1');

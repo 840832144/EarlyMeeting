@@ -1,13 +1,13 @@
 # Codex Handoff｜EarlyMeeting 本机卡片回调接管
 
-- Date：2026-09-10
+- Date：2026-09-15
 - User decision：Approved
 - Owner：User / ChatGPT
 - Executor：Codex（已在目标 Windows 本机接管）
 - Priority：EarlyMeeting 当前首要步骤；不改变其他项目优先级。
 - Execution repository：840832144/EarlyMeeting
 - Project key：EARLYMEETING，已通过正式 allocator 验证。
-- Status：Review — 仅正式群2已启用 DeepSeek 自动交付；正式 [TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)，未标记 Done。
+- Status：Review — 当天数据保留规则已部署，群2今日超时意图保留待核对；仅正式群2启用 DeepSeek 自动交付；正式 [TASK-0028](https://github.com/840832144/AI-Workspace/blob/codex/earlymeeting-callback-task/tasks/TASK-0028-EARLYMEETING.md)，未标记 Done。
 - 完整范围：[CURRENT_DIRECTION.md](../docs/CURRENT_DIRECTION.md)
 - 现场状态：[STATUS.md](../STATUS.md)
 
@@ -16,6 +16,10 @@
 本 Gate 已完成：AI-Workspace main@1dd6de3 完整 Registry 为 13 canonical / 0 collision / valid；全部远端目标防重无同目标 Task；独立 worktree 由 Approved Candidate / remote-CAS allocator 分配 TASK-0028，重建后为 14 canonical / 0 collision / valid。准备 commit a68b663 已推送；reservation pending-main，Review 后才合并并 finalize。没有复用其他任务预约。
 
 ## 当前三区域实现与唯一下一步
+
+2026-09-15 最新交付：User确认以后本机只保留当天晨会记录。meeting-retention仅删除早于北京时间当天的已知状态文件及旧迁移/手动重发副本，拒绝目录链接和越界路径、不递归删除。schedule的15秒循环先停止旧日worker，再离线清理；启动即启用循环，发送仍需连接。启动不再自动重放unknown/rejected的今日pending，以免清理部署触发不确定写入。4项清理风险检查及10项既有队列检查通过；STOP_VERIFIED后部署，真实RETENTION_DONE files=11 days=8 errors=0 / CONNECTED。回查仅今日两群状态，群1 rows=1无积压，群2 rows=0/unknown/add/attempts=1/queued=1保留；群2未就绪，后续需核对该不确定请求，不能重复发卡或删除今天状态恢复。配置和09:30、权限与AI范围保留，无卡片重发或布局更新。代码备份仅含旧源码，位于.local/meeting/code-backup-before-retention。原群历史消息不删除。Task继续Review，草稿核实仍未闭环。
+
+Idea/Memory Check：这是TASK-0028现有晨会卡片的数据保留规则，唯一Roadmap已有本人行填写与同卡汇总条目，不另建长期产品方向、Candidate或Future Task；当前事实直接进入Task/Status/Handoff。Subagents: none。
 
 2026-09-10 最新运行调整：User要求之后改为09:30，两个正式群下一次在2026-09-11工作日北京时间09:30各发一张。本机只改groups.json顶层time，沿用可配置调度，示例/默认时间与操作说明同步。10:12 STOP_VERIFIED后两群无pending/requests，重启真实HTTP101 / CONNECTED / time=09:30 / 两群MEETING_READY，今日原卡10/4行恢复，无新发或布局更新。上午User要求补发时原进程未运行、当天两群无发送状态；已启动并各成功发送一张。这次时间调整不保证电脑关机/程序关闭时送达，也不启用系统自启或提醒。下次新时间准点送达尚未实测，草稿问题仍待核实，Task继续Review。Subagents: none。
 

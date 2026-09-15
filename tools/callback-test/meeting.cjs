@@ -22,10 +22,11 @@ async function main() {
   try{schedule=new MeetingSchedule(path.join(__dirname,'.local','meeting'),config,c=>createApi(c,Lark),output,()=>state.connected);}
   catch{output('[LOCAL_STATE_INVALID] 本轮数据无法核对，已停止；请勿删除数据重发。');session.finish();return;}
   const agent=diagnosticAgent(output,diagnosis,state);
-  let starting=false;
+  let wasConnected=false;
   const logger=safeLogger(line=>{
     output(line);
-    if(state.connected&&!starting){starting=true;setTimeout(()=>schedule.start(),0);}
+    if(state.connected&&!wasConnected){wasConnected=true;void schedule.tick();}
+    if(!state.connected)wasConnected=false;
   },state);
   const dispatcher=new Lark.EventDispatcher({logger:silent}).register({
     'card.action.trigger':payload=>schedule.handle(payload),
@@ -44,6 +45,7 @@ async function main() {
   process.once('uncaughtException',()=>{output('[FATAL] 原始错误已隐藏。');void stop(1);});
   process.once('unhandledRejection',()=>{output('[FATAL] 原始错误已隐藏。');void stop(1);});
   output('[MEETING_STARTING] 仅处理本机配置群；当天同卡填写；定时按 groups.json。');
+  schedule.start();
   try{await ws.start({eventDispatcher:dispatcher});}catch(e){output('[CONNECT_FAILED] '+diagnosis(e,state.phase));await stop(1);}
 }
 if(require.main===module)main().catch(()=>{console.log('[MEETING_FAILED] 原始错误已隐藏。');process.exitCode=1;});

@@ -9,7 +9,8 @@
   "scripts": {
     "test:recovery": "node --test meeting-recovery.test.cjs",
     "test": "node probe.cjs --self-test && node --test probe.test.cjs send.test.cjs meeting.test.cjs",
-    "start": "node probe.cjs"
+    "start": "node probe.cjs",
+    "test:retention": "node --test meeting-retention.test.cjs"
   },
   "dependencies": {
     "@larksuiteoapi/node-sdk": "1.73.3"

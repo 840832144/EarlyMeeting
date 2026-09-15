@@ -1,5 +1,15 @@
 # 本人行晨会｜脱敏验收记录
 
+## 2026-09-15 自动清理，仅保留当天本机晨会记录
+
+User在保留范围澄清中明确选择以后自动清理。运行程序按北京时间，启动及跨天执行，先停止并等待旧日worker，再删除已知旧日状态文件；离线仍清理，关机后下次启动补清。当前日期目录整体跳过，包括pending和.next；配置、迁移标记、代码备份及其他文件不删除。对已知旧副本验证schema及createdAt后清理。删除使用逐文件unlink与空目录rmdir，路径必须留在指定运行目录，拒绝链接/重解析点，不递归删除或调用飞书删除接口。
+
+检查：node --test tools/callback-test/meeting-retention.test.cjs tools/callback-test/meeting-recovery.test.cjs，14/14通过；新增4项覆盖当前/配置保留、目录链接防护、离线跨天先停止writer及今日unknown重启不重放。只有虚构数据和临时目录；无真实群模拟点击或模型调用。
+
+现场：STOP_VERIFIED后只备份旧源码并部署4个运行脚本。真实RETENTION_DONE date=2026-09-15 files=11 days=8 errors=0 today_preserved=true，随后HTTP101 / CONNECTED。回查此前9月7日至10日的状态及旧副本已清理，仅剩今天两份状态；群1原1行/pending=false/queued=0，群2原0行/pending=true/kind=add/recovery=unknown/attempts=1/queued=1。配置存在、time=09:30；没有新发消息、布局更新或重放群2请求。次日跨天仅有离线检查，未冒称已取得未来现场证据。
+
+当前故障边界：今天群2新增行的更新接口在8秒后返回客户端ECONNABORTED/TIMEOUT，没有确认平台最终结果；群1稍后新增及保存成功。由此不能认定公司Wi-Fi是必要条件或定位具体网络根因。群2UPDATE_HELD / MEETING_NOT_READY，仍需维护者核对原操作。清理历史不代表故障恢复。Task继续Review；Subagents: none。
+
 ## 2026-09-10 两群补发与后续09:30调整
 
 上午User要求补发，检查为NOT_RUNNING、匹配进程0、两个启用群当天均无状态文件；启动后真实HTTP101 / CONNECTED，两群分别CARD_CREATED / MEETING_SENT / MEETING_READY。状态回读均stage=sent、不同message、pending=false、queued=0，单进程持续运行，没有清除旧记录或重复发送。
