@@ -1,5 +1,7 @@
 # EarlyMeeting｜当前状态
 
+2026-09-15 追加云端维护与归档：User改由Codex执行公司Linux移植，限定允许目录；已增加一键启停/状态/日志、跨重启脱敏轮转日志，以及从2026-09-16起的分群每日归档。归档只收录成功提交，失败阻止对应旧日源文件清理；运行状态继续只留当天。说明见[维护入口](docs/LINUX_OPERATIONS.md)。本地20项相关检查通过；新的Linux容器验证待CI。本轮仅SSH握手，主机指纹待技术确认，严格校验已在密码发送前停止；未登录、未停Windows、未向正式群发测试卡。TASK-0028续接In Progress，代码交Review、生产切换待核验与维护窗口。下方为前轮历史。Subagents: none。
+
 2026-09-15 Linux代码与交接完成：按[PR #4指定Linux任务留言](https://github.com/840832144/EarlyMeeting/pull/4#issuecomment-5673785774)完成现有服务Linux适配。技术接手唯一入口：[Linux交接说明](docs/LINUX_HANDOFF.md)，验证结果见[Linux验证记录](docs/LINUX_VALIDATION.md)。完整代码仍在codex/task-0028-local-callback / PR #4，最终代码0d4a70b已通过Ubuntu24.04/Linux CI：17/17，Compose两轮重建、单实例锁和SIGTERM退出通过（禁网虚构数据）。TASK-0028继续Review。公司云端尚未部署，本轮没有停止/更新Windows运行实例或向正式群发测试卡。下方保留此前Windows现场历史。
 
 2026-09-15 晨会期间紧急恢复：User要求尽快处理。通过官方SDK只读查询群2今天原消息成功，但消息摘要没有组件ID/版本，不能据此认定原新增行是否成功。STOP_VERIFIED后仅对已持久化的原add意图补试一次，沿用原uuid、sequence、event和行ID；飞书明确成功后由原flush逻辑落盘，ROW_ADDED rows=1，同一消息、原序号，pending=false / queued=0。没有把冲突当成功，没有删除今天状态、重发卡或整卡刷新。重启后真实HTTP101 / CONNECTED，两群MEETING_READY。自动清理469d55e保留，仅今天两份群状态，09:30、权限及AI范围保留。本次是人工恢复，不声称已实现所有未知结果的自动恢复或定位网络根因。Subagents: none。

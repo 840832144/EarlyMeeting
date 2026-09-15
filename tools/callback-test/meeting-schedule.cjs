@@ -5,6 +5,7 @@ const {createStore,binding,validate,hash}=require('./meeting-store.cjs');
 const {MeetingService}=require('./meeting-service.cjs');
 const {MAX_ROWS,SECTIONS}=require('./meeting-card.cjs');
 const {cleanupHistory}=require('./meeting-retention.cjs');
+const {createArchive}=require('./meeting-archive.cjs');
 
 // Fixed UTC+8, independent of the Windows clock's display timezone.
 function beijing(now=Date.now()) {
@@ -73,12 +74,13 @@ function migrateLegacy(directory,config,output) {
 }
 
 class MeetingSchedule {
-  constructor(directory,config,apiFactory,output,connected,{settings}={}) {
+  constructor(directory,config,apiFactory,output,connected,{settings,operations}={}) {
     Object.assign(this,{directory,config,apiFactory,output,connected});
     this.schedule=settings||readSettings(directory,config);this.groups=this.schedule.groups;
     migrateLegacy(directory,config,output);
     this.active=new Map();this.day=null;this.stopped=false;this.work=null;
     this.cleanedDay=null;this.cleanupRetryAt=0;
+    this.archive=createArchive(directory,config,this.groups,operations?.archive,output);
   }
   start() {
     this.output(`[SCHEDULE_CONFIGURED] groups=${this.groups.length}; scheduled=${this.groups.filter(g=>g.schedule).length}; weekdays=1-5; time=${this.schedule.time}; timezone=Asia/Shanghai`);
@@ -100,12 +102,15 @@ class MeetingSchedule {
     }
     if(this.cleanedDay!==today.date&&Date.now()>=this.cleanupRetryAt) {
       try {
-        const result=cleanupHistory(this.directory,today.date);
+        const result=cleanupHistory(this.directory,today.date,{beforeRemoveDay:this.archive?.beforeRemoveDay});
+        this.retentionErrors=result.errors;
         if(!result.errors)this.cleanedDay=today.date;
         this.output(`[RETENTION_${result.errors?'INCOMPLETE':'DONE'}] date=${today.date}; files=${result.files}; days=${result.days}; errors=${result.errors}; today_preserved=true`);
-      }catch{this.output('[RETENTION_INCOMPLETE] 历史清理未完成；当天数据保留。');}
+      }catch{this.retentionErrors=1;this.output('[RETENTION_INCOMPLETE] 历史清理未完成；当天数据保留。');}
       this.cleanupRetryAt=Date.now()+60000;
     }
+    // Read only committed state. No callback payload, draft, or pending body is archived.
+    this.archive?.snapshot(today.date);
     // Retention runs offline as well. Sending/resuming cards still requires the
     // live connection, and old workers are stopped before their files are removed.
     if(!this.connected()||this.stopped)return;
@@ -160,6 +165,7 @@ class MeetingSchedule {
     this.stopped=true;clearInterval(this.timer);
     if(this.work)await this.work;
     for(const slot of this.active.values())await slot.service.stop();
+    if(this.day)this.archive?.snapshot(this.day);
   }
 }
 module.exports={MeetingSchedule,beijing,readGroups,readSettings,scheduleDue};

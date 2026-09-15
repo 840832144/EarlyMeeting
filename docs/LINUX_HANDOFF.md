@@ -1,5 +1,7 @@
 # EarlyMeeting｜Linux 技术接手入口
 
+2026-09-15 最新维护增量见[一键启停、日志与归档](LINUX_OPERATIONS.md)。User已提供允许目录并改由Codex执行移植；首次SSH指纹待技术确认，尚未登录或切换。下面保留完整基础部署与回退步骤；实际路径应使用允许目录内的独立子目录，示例 `/srv` 路径不是本次公司的已部署路径。运行状态只留当天；从2026-09-16起的已提交记录另行归档。
+
 本轮交付现有晨会服务的 Docker Compose 版本，续接 **TASK-0028 / PR #4**。公司技术负责服务器部署与正式切换。本轮没有停止 User 的 Windows 机器人，没有使用正式群做云端测试，也没有购买服务器或加入采集器。
 
 ## 1. 获取完整项目
@@ -82,9 +84,9 @@ docker compose restart meeting
 
 代码回退使用上一个镜像标签，并继续挂载**最新**数据；不要恢复升级前的旧业务快照。本次状态格式仍为version1，与原Windows实现兼容。后续若状态格式改变，先按对应版本的迁移说明操作。
 
-日志只走脱敏输出。Compose本地日志驱动限制为2MB×2，不默认保存原始请求/回调或无限增长日志。状态目录的 `session.json` / `health.json` / `stop.json` / `service.lock` 属于本机进程文件，不能作为跨机器锁迁移。
+日志同时保存在数据目录的 `logs/service.jsonl` 与 `logs/operations.log`，跨重启保留，每类约2MiB×3轮转；只保存事件、状态与必要计数，不保存原始请求/回调或晨会正文。Compose日志另外限制为2MB×2。状态目录的 `session.json` / `health.json` / `stop.json` / `service.lock` 属于本机进程文件，不能作为跨机器锁迁移。
 
-每天按北京时间清理旧日状态，启动时补清；断网仍可清理，先等待旧日worker停止。当天的消息ID、版本、UUID/sequence、已接收队列和待确认意图保留；配置不清理，飞书历史消息不删除。临时迁移包在确认交接后由技术清除，不建立长期晨会正文备份制度。
+每天按北京时间清理旧日状态，启动时补清；断网仍可清理，先等待旧日worker停止。当天的消息ID、版本、UUID/sequence、已接收队列和待确认意图保留；配置不清理，飞书历史消息不删除。临时迁移包在确认交接后由技术清除。User后续批准从2026-09-16起保留分群每日已提交记录归档，配置与路径见维护说明；归档失败时对应旧日运行状态先保留，等待补写。
 
 ## 4. Windows → Linux 正式切换
 
@@ -100,7 +102,7 @@ node .\tools\callback-test\transfer.cjs export `
   --output 'C:\Users\admin\Desktop\EarlyMeeting-private-transfer'
 ```
 
-目标必须不存在。工具只导出 `config/config.json`、`groups.json`、存在时的 `ai.json`，以及两个启用群**北京时间当天**的状态文件；保持字节内容，排除旧PID、session、STOP、锁、日志及历史数据。存在unknown/pending会原样保留并提示attention；不复制或解析客户端草稿。不要运行旧备份导出工具代替此工具。
+目标必须不存在。工具只导出 `config/config.json`、`groups.json`、存在时的 `ai.json`，、可选 `config/operations.json`，以及两个启用群**北京时间当天**的状态文件；保持字节内容，排除旧PID、session、STOP、锁、日志及历史数据。存在unknown/pending会原样保留并提示attention；不复制或解析客户端草稿。不要运行旧备份导出工具代替此工具。
 
 4. 通过公司批准的SSH/SFTP等私密渠道将整个导出包交给技术。不要发到群聊或Git。技术把包放在受控路径，例如 `/srv/earlymeeting-transfer/incoming`。以下命令仅针对尚未启用的新目录；目标已有 `data/days` 时先停止并确认其归属，不覆盖：
 

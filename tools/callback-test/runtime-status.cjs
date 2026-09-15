@@ -17,6 +17,8 @@ function snapshot(schedule,connection,stopped=false,persisted={}) {
       rows:s?.rows?.length||0,queued:s?.requests?.length||0,pending};
   });
   return {version:1,pid:process.pid,updatedAt:Date.now(),running:!stopped,connected:connection.connected&&!stopped,
+    archive:schedule.archive?.status()||{enabled:false},
+    retentionErrors:schedule.retentionErrors||0,
     date:today.date,groups,ready:!stopped&&connection.connected&&schedule.day===today.date&&
       groups.every(g=>['ready','waiting'].includes(g.status))};
 }
@@ -30,7 +32,7 @@ function health(directory) {
     const fresh=Number.isFinite(s.updatedAt)&&Date.now()-s.updatedAt>=0&&Date.now()-s.updatedAt<25000;
     let alive=false;try{process.kill(s.pid,0);alive=true;}catch{}
     return {running:alive&&fresh&&s.running===true,connected:alive&&fresh&&s.connected===true,
-      ready:alive&&fresh&&s.ready===true,date:s.date,groups:s.groups};
+      ready:alive&&fresh&&s.ready===true,date:s.date,groups:s.groups,archive:s.archive||{enabled:false},retentionErrors:s.retentionErrors||0};
   }catch{return {running:false,connected:false,ready:false,groups:[]};}
 }
 module.exports={snapshot,writeStatus,health};

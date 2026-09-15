@@ -5,12 +5,14 @@ const {readConfig}=require('./probe.cjs');
 const {readSettings,beijing}=require('./meeting-schedule.cjs');
 const {createAi}=require('./meeting-ai.cjs');
 const {binding,validate}=require('./meeting-store.cjs');
+const {readOperations}=require('./meeting-archive.cjs');
 
 function paths(env=process.env,base=__dirname) {
   const configDir=path.resolve(env.EARLYMEETING_CONFIG_DIR||path.join(base,'.local'));
   return {configDir,settingsDir:env.EARLYMEETING_CONFIG_DIR?configDir:path.join(base,'.local','meeting'),
     dataDir:path.resolve(env.EARLYMEETING_DATA_DIR||path.join(base,'.local','meeting')),
-    fileLogging:env.EARLYMEETING_FILE_LOG!=='0'};
+    fileLogging:env.EARLYMEETING_FILE_LOG!=='0',
+    operationsLogDir:env.EARLYMEETING_LOG_DIR?path.resolve(env.EARLYMEETING_LOG_DIR):undefined};
 }
 function loadRuntime(env=process.env,base=__dirname) {
   const locations=paths(env,base);
@@ -32,7 +34,8 @@ function loadRuntime(env=process.env,base=__dirname) {
   try{config.deliveryAi=createAi(locations.settingsDir);}catch{throw new Error('AI_CONFIG_INVALID');}
   // Do not silently switch the company's configured AI group to another mode.
   if(settings.groups.some(g=>g.delivery_ai)&&!config.deliveryAi)throw new Error('AI_CONFIG_REQUIRED');
-  return {...locations,config,settings};
+  const operations=readOperations(locations.settingsDir);
+  return {...locations,config,settings,operations};
 }
 function inspectStates(runtime,{requireToday=false}={}) {
   const today=beijing().date;
@@ -55,6 +58,6 @@ function inspectStates(runtime,{requireToday=false}={}) {
   return {date:today,time:runtime.settings.time,groups,attention:groups.some(g=>g.attention)};
 }
 const codes=new Set(['APP_CONFIG_INVALID','APP_CONFIG_MISSING_OR_INVALID_JSON','GROUP_CONFIG_MISSING_OR_INVALID',
-  'NO_ENABLED_GROUPS','AI_CONFIG_INVALID','AI_CONFIG_REQUIRED','TODAY_STATE_INVALID']);
+  'NO_ENABLED_GROUPS','AI_CONFIG_INVALID','AI_CONFIG_REQUIRED','TODAY_STATE_INVALID','OPERATIONS_CONFIG_INVALID']);
 function configError(e){return codes.has(e?.message)?e.message:'LOCAL_CONFIG_OR_STATE_ERROR';}
 module.exports={paths,loadRuntime,inspectStates,configError};

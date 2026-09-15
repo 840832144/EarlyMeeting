@@ -7,7 +7,7 @@ const validDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'
 
 // Only EarlyMeeting's known state filenames are removed. No recursive delete,
 // configuration/log deletion, message API, or deletion of today's directory.
-function cleanupHistory(directory,today) {
+function cleanupHistory(directory,today,{beforeRemoveDay}={}) {
   if(!validDate(today))throw new Error('RETENTION_DATE_INVALID');
   const root=path.resolve(directory),result={files:0,days:0,errors:0};
   if(fs.lstatSync(root).isSymbolicLink())throw new Error('RETENTION_ROOT_LINK');
@@ -52,6 +52,8 @@ function cleanupHistory(directory,today) {
           attempt(()=>{
             const dir=path.join(groupDir,date.name);
             if(!safe(dir).isDirectory())throw new Error('RETENTION_DIRECTORY_INVALID');
+            // A failed archive leaves this day's original state intact for retry.
+            if(beforeRemoveDay)beforeRemoveDay(dir,group.name,date.name);
             for(const name of ['meeting-state.json','meeting-state.json.next'])removeState(path.join(dir,name));
             safe(dir);
             if(fs.readdirSync(dir).length===0){fs.rmdirSync(dir);result.days++;}

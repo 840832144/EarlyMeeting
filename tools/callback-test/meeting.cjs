@@ -29,9 +29,9 @@ async function main({env=process.env,base=__dirname,LarkOverride}={}) {
   if(inspection.groups.some(g=>g.partial)) {
     console.log('[TODAY_STATE_PARTIAL] 存在未完成的当天状态写入，请先核对；未删除或覆盖。');process.exitCode=1;return;
   }
-  const {config,dataDir,settings,fileLogging}=runtime;
+  const {config,dataDir,settings,fileLogging,operationsLogDir,operations}=runtime;
   let session;
-  try{session=createSession(dataDir,console.log,{fileLogging});}
+  try{session=createSession(dataDir,console.log,{fileLogging,operationsLogDir});}
   catch{console.log('[STATE_DIRECTORY_UNWRITABLE] 请检查状态挂载及目录权限。');process.exitCode=1;return;}
   const output=session.output;
   for(const key of ['EARLYMEETING_APP_ID','EARLYMEETING_APP_SECRET','EARLYMEETING_TEST_CHAT_ID'])delete process.env[key];
@@ -39,7 +39,7 @@ async function main({env=process.env,base=__dirname,LarkOverride}={}) {
   const silent=Object.fromEntries(['trace','debug','info','warn','error'].map(k=>[k,()=>{}]));
   const state={connected:false,errors:0,phase:'STARTUP'};
   let schedule;
-  try{schedule=new MeetingSchedule(dataDir,config,c=>createApi(c,Lark),output,()=>state.connected,{settings});}
+  try{schedule=new MeetingSchedule(dataDir,config,c=>createApi(c,Lark),output,()=>state.connected,{settings,operations});}
   catch{output('[LOCAL_STATE_INVALID] 数据无法核对，已停止；请勿删除数据重发。');session.finish();process.exitCode=1;return;}
   const agent=diagnosticAgent(output,diagnosis,state);
   let wasConnected=false;

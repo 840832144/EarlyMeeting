@@ -34,6 +34,8 @@ function exportBundle(runtime,destination) {
   put('config/groups.json',checkedFile(path.join(runtime.settingsDir,'groups.json'),runtime.settingsDir));
   const ai=path.join(runtime.settingsDir,'ai.json');
   if(fs.existsSync(ai))put('config/ai.json',checkedFile(ai,runtime.settingsDir));
+  const operations=path.join(runtime.settingsDir,'operations.json');
+  if(fs.existsSync(operations))put('config/operations.json',checkedFile(operations,runtime.settingsDir));
   for(const g of runtime.settings.groups){
     const relative=path.join('days',binding({...runtime.config,chatId:g.chat_id}),report.date);
     for(const name of ['meeting-state.json','meeting-state.json.next']){

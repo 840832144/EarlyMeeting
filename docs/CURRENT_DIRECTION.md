@@ -1,5 +1,7 @@
 # EarlyMeeting｜当前方向：Codex 接管本机卡片回调
 
+2026-09-15 User最新授权（优先于下方“技术执行”及“不长期保留”历史）：Codex使用本机私有SSH配置承担公司Linux移植；已批准维护日志、一键启停，以及从2026-09-16起将每日已提交晨会记录分群归档在部署目录。保持工作日09:30、本人行权限、群隔离、群2AI及当日运行状态清理。项目Capability在原Linux运行契约内追加维护与已提交记录归档；SSH/生产切换为User授权的部署操作，需核验主机身份并确保新旧实例不同时运行。业务实现留在EarlyMeeting，沿用TASK-0028，不涉及Document Assistant或新编号。具体行为与登录阻塞见[维护说明](LINUX_OPERATIONS.md)。
+
 2026-09-15 最新交付方向：按[PR #4指定Linux任务留言](https://github.com/840832144/EarlyMeeting/pull/4#issuecomment-5673785774)完成现有服务Linux适配。技术接手唯一入口：[Linux交接说明](LINUX_HANDOFF.md)，验证结果见[Linux验证记录](LINUX_VALIDATION.md)。完整代码仍在codex/task-0028-local-callback / PR #4，TASK-0028继续Review。公司云端尚未部署，本轮没有停止/更新Windows运行实例或向正式群发测试卡。下方保留此前Windows现场历史。
 
 Linux交付的项目Capability：将现有晨会长连接、持久队列和当天状态规则运行在单实例Linux服务中；输入为原应用/两群/AI受控配置及当天状态，输出为Docker Compose、Node业务入口、维护检查和技术切换文档。仓库操作为WRITE；实际服务器部署与生产切换由公司技术负责。既有09:30、群隔离、本人行权限、群2AI及当天清理不变；不新增Document Assistant业务、公网回调端口或其他运行系统。

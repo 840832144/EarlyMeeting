@@ -43,6 +43,7 @@ test('configuration check is offline, rejects missing secrets/AI and reports tod
 });
 test('stopped-host export preserves today intent exactly, excludes process files, refuses active service and overwrite',t=>{
   const f=fixture(t),s=f.store.get();
+  f.write('operations.json',{version:1,archive:{enabled:true,start_date:'2026-09-16'}});
   s.pending={kind:'add',row:{id:'r123456abcdef',owner:'ou_fixture',section:'planning',content:'',revision:0},
     sequence:1,uuid:randomUUID(),event:'a'.repeat(64),recovery:{status:'unknown',attempts:1}};
   s.requests=[{kind:'add',owner:'ou_fixture',section:'planning',event:'a'.repeat(64)}];f.store.put(s);
@@ -51,6 +52,7 @@ test('stopped-host export preserves today intent exactly, excludes process files
   fs.writeFileSync(path.join(f.data,'session.json'),JSON.stringify({stopped:true}));
   const result=exportBundle(f.runtime,out);assert.equal(result.attention,true);
   const imported=loadRuntime({EARLYMEETING_CONFIG_DIR:path.join(out,'config'),EARLYMEETING_DATA_DIR:path.join(out,'data')});
+  assert.equal(imported.operations.archive.start_date,'2026-09-16');
   assert.deepEqual(inspectStates(imported,{requireToday:true}),inspectStates(f.runtime,{requireToday:true}));
   const relative=path.relative(f.data,path.join(f.dir,'meeting-state.json'));
   assert.deepEqual(fs.readFileSync(path.join(out,'data',relative)),fs.readFileSync(path.join(f.data,relative)));

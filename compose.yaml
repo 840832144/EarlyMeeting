@@ -17,6 +17,7 @@ services:
       EARLYMEETING_CONFIG_DIR: /config
       EARLYMEETING_DATA_DIR: /data
       EARLYMEETING_FILE_LOG: "0"
+      EARLYMEETING_LOG_DIR: /data/logs
     volumes:
       - type: bind
         source: ${EARLYMEETING_CONFIG_HOST_DIR:-/srv/earlymeeting/config}
