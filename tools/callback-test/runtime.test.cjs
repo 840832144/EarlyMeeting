@@ -27,9 +27,11 @@ function fixture(t){
 }
 test('configuration check is offline, rejects missing secrets/AI and reports today pending without printing content',t=>{
   const f=fixture(t);
-  const run=()=>spawnSync(process.execPath,[path.join(__dirname,'meeting.cjs'),'--check','--require-today'],
+  const run=(args=['--check','--require-today'])=>spawnSync(process.execPath,[path.join(__dirname,'meeting.cjs'),...args],
     {env:{PATH:process.env.PATH,SystemRoot:process.env.SystemRoot,...f.env},encoding:'utf8'});
   let r=run();assert.equal(r.status,0,r.stdout+r.stderr);assert.match(r.stdout,/"config":"valid"/);
+  r=run(['--chek']);assert.equal(r.status,1);assert.match(r.stdout,/ARGUMENTS_INVALID/);
+  assert.doesNotMatch(r.stdout,/MEETING_STARTING/);
   const s=f.store.get();s.pending={kind:'add',row:{id:'r123456abcdef',owner:'ou_fixture',section:'planning',content:'',revision:0},
     sequence:1,uuid:randomUUID(),event:'a'.repeat(64),recovery:{status:'unknown',attempts:1}};
   f.store.put(s);r=run();assert.equal(r.status,2);assert.match(r.stdout,/"pending":"unknown"/);

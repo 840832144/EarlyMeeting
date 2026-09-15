@@ -10,6 +10,12 @@ const {snapshot,writeStatus,health}=require('./runtime-status.cjs');
 async function main({env=process.env,base=__dirname,LarkOverride}={}) {
   process.umask(0o077);
   const args=process.argv.slice(2);
+  if(args.some(a=>!['--check','--require-today','--status','--healthcheck'].includes(a))||
+    args.filter(a=>['--check','--status','--healthcheck'].includes(a)).length>1||
+    (args.includes('--require-today')&&!args.includes('--check'))){
+    console.log('[ARGUMENTS_INVALID] 仅支持 --check [--require-today]、--status 或 --healthcheck；无参数才启动业务。');
+    process.exitCode=1;return;
+  }
   if(args.includes('--status')||args.includes('--healthcheck')) {
     const status=health(paths(env,base).dataDir);console.log(JSON.stringify(status));
     process.exitCode=status.ready?0:1;return;
