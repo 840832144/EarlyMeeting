@@ -1,5 +1,9 @@
 # EarlyMeeting｜当前方向：Codex 接管本机卡片回调
 
+2026-09-15 最新交付方向：按[PR #4指定Linux任务留言](https://github.com/840832144/EarlyMeeting/pull/4#issuecomment-5673785774)完成现有服务Linux适配。技术接手唯一入口：[Linux交接说明](LINUX_HANDOFF.md)，验证结果见[Linux验证记录](LINUX_VALIDATION.md)。完整代码仍在codex/task-0028-local-callback / PR #4，TASK-0028继续Review。公司云端尚未部署，本轮没有停止/更新Windows运行实例或向正式群发测试卡。下方保留此前Windows现场历史。
+
+Linux交付的项目Capability：将现有晨会长连接、持久队列和当天状态规则运行在单实例Linux服务中；输入为原应用/两群/AI受控配置及当天状态，输出为Docker Compose、Node业务入口、维护检查和技术切换文档。仓库操作为WRITE；实际服务器部署与生产切换由公司技术负责。既有09:30、群隔离、本人行权限、群2AI及当天清理不变；不新增Document Assistant业务、公网回调端口或其他运行系统。
+
 2026-09-15 最新运行状态：自动清理仅保留当天已部署；群2今天原add超时已在晨会期间人工补试成功，原请求标识与原卡保留，队列清空。重启后真实HTTP101 / CONNECTED，两群MEETING_READY。实现与证据见STATUS及MEETING_ACCEPTANCE；不改变权限、AI和09:30范围。
 
 **2026-09-15 数据保留决定**：User明确选择“以后自动清理，只留当天晨会记录”。范围是本机EarlyMeeting数据：按北京时间，在启动和跨天时删除早于当天的已知晨会状态文件，包括旧迁移/手动重发副本；保留当天完整状态和待处理提交、群配置及凭据。停止旧日worker后再清理，断网也执行；关机时下次启动补清。已发送到飞书群的历史消息继续保留，不在本次本机清理范围。

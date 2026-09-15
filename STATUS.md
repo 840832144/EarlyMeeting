@@ -1,5 +1,7 @@
 # EarlyMeeting｜当前状态
 
+2026-09-15 Linux代码与交接完成：按[PR #4指定Linux任务留言](https://github.com/840832144/EarlyMeeting/pull/4#issuecomment-5673785774)完成现有服务Linux适配。技术接手唯一入口：[Linux交接说明](docs/LINUX_HANDOFF.md)，验证结果见[Linux验证记录](docs/LINUX_VALIDATION.md)。完整代码仍在codex/task-0028-local-callback / PR #4，最终代码0d4a70b已通过Ubuntu24.04/Linux CI：17/17，Compose两轮重建、单实例锁和SIGTERM退出通过（禁网虚构数据）。TASK-0028继续Review。公司云端尚未部署，本轮没有停止/更新Windows运行实例或向正式群发测试卡。下方保留此前Windows现场历史。
+
 2026-09-15 晨会期间紧急恢复：User要求尽快处理。通过官方SDK只读查询群2今天原消息成功，但消息摘要没有组件ID/版本，不能据此认定原新增行是否成功。STOP_VERIFIED后仅对已持久化的原add意图补试一次，沿用原uuid、sequence、event和行ID；飞书明确成功后由原flush逻辑落盘，ROW_ADDED rows=1，同一消息、原序号，pending=false / queued=0。没有把冲突当成功，没有删除今天状态、重发卡或整卡刷新。重启后真实HTTP101 / CONNECTED，两群MEETING_READY。自动清理469d55e保留，仅今天两份群状态，09:30、权限及AI范围保留。本次是人工恢复，不声称已实现所有未知结果的自动恢复或定位网络根因。Subagents: none。
 
 当日清理部署时状态（后续恢复见上）：User确认以后自动清理、本机只留当天晨会数据。已部署启动/跨天清理，真实RETENTION_DONE files=11 days=8 errors=0，回查仅剩9月15日两份群状态；配置、09:30和当天记录保留。群1可用，群2今日新增行请求曾在8秒后ECONNABORTED/TIMEOUT，unknown意图及1条队列保留，未自动重放，仍待核对。当前连接正常，此错误不能证明必须公司Wi-Fi；不将清理历史当作保存故障已解决。Task继续Review。

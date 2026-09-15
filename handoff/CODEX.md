@@ -1,4 +1,8 @@
-# Codex Handoff｜EarlyMeeting 本机卡片回调接管
+# Codex Handoff｜EarlyMeeting Windows运行与Linux技术交接
+
+2026-09-15 最新交付方向：按[PR #4指定Linux任务留言](https://github.com/840832144/EarlyMeeting/pull/4#issuecomment-5673785774)完成现有服务Linux适配。技术接手唯一入口：[Linux交接说明](../docs/LINUX_HANDOFF.md)，验证结果见[Linux验证记录](../docs/LINUX_VALIDATION.md)。完整代码仍在codex/task-0028-local-callback / PR #4，最终代码0d4a70b已通过Linux CI 34922786869；17/17及两轮禁网Compose启停/重建通过。TASK-0028继续Review。公司云端尚未部署，本轮没有停止/更新Windows运行实例或向正式群发测试卡。下方保留此前Windows现场历史。
+
+当前唯一下一步：公司技术从Linux交接入口完成部署前准备，约定维护窗口后按文档切换；正式Review继续。Subagents: none。Idea Check：这是TASK-0028既有晨会服务的部署实现，沿用已有Current方向，不新增产品、编号或Future Task；不把未发生的公司部署写成Done。
 
 - Date：2026-09-15
 - User decision：Approved
