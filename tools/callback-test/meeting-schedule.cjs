@@ -12,8 +12,9 @@ function beijing(now=Date.now()) {
   return {date:d.toISOString().slice(0,10),weekday:d.getUTCDay(),minute:d.getUTCHours()*60+d.getUTCMinutes()};
 }
 const json=file=>JSON.parse(fs.readFileSync(file,'utf8').replace(/^\uFEFF/,''));
-function readSettings(directory,config) {
+function readSettings(directory,config,{createIfMissing=true}={}) {
   const file=path.join(directory,'groups.json');
+  if(!fs.existsSync(file)&&!createIfMissing)throw new Error('GROUP_CONFIG_MISSING');
   if(!fs.existsSync(file))fs.writeFileSync(file,JSON.stringify({version:1,timezone:'Asia/Shanghai',time:'09:30',
     weekdays:[1,2,3,4,5],groups:[{name:'测试群',chat_id:config.chatId,enabled:true,schedule:false,
       start_date:beijing().date}]},null,2),{flag:'wx',mode:0o600});
@@ -72,9 +73,9 @@ function migrateLegacy(directory,config,output) {
 }
 
 class MeetingSchedule {
-  constructor(directory,config,apiFactory,output,connected) {
+  constructor(directory,config,apiFactory,output,connected,{settings}={}) {
     Object.assign(this,{directory,config,apiFactory,output,connected});
-    this.schedule=readSettings(directory,config);this.groups=this.schedule.groups;
+    this.schedule=settings||readSettings(directory,config);this.groups=this.schedule.groups;
     migrateLegacy(directory,config,output);
     this.active=new Map();this.day=null;this.stopped=false;this.work=null;
     this.cleanedDay=null;this.cleanupRetryAt=0;

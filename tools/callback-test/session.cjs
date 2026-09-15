@@ -4,13 +4,13 @@ const path = require('node:path');
 const {randomUUID} = require('node:crypto');
 
 // Only finite diagnostic output reaches these files. No SDK output or payloads.
-function createSession(directory, consoleOutput = console.log) {
+function createSession(directory, consoleOutput = console.log, {fileLogging=true,maxLogBytes=1024*1024}={}) {
   fs.mkdirSync(directory, {recursive: true});
   const statusPath = path.join(directory, 'status.log');
   const sessionPath = path.join(directory, 'session.json');
   const stopPath = path.join(directory, 'stop.json');
   const runId = randomUUID();
-  fs.writeFileSync(statusPath, '');
+  if(fileLogging)fs.writeFileSync(statusPath, '');
   const writeState = stopped => fs.writeFileSync(sessionPath,
     JSON.stringify({pid: process.pid, runId, stopped}));
   writeState(false);
@@ -18,7 +18,10 @@ function createSession(directory, consoleOutput = console.log) {
   return {
     output(text) {
       consoleOutput(text);
-      fs.appendFileSync(statusPath, new Date().toISOString() + ' ' + text + '\n');
+      if(fileLogging){
+        if(fs.statSync(statusPath).size>=maxLogBytes)fs.writeFileSync(statusPath,'');
+        fs.appendFileSync(statusPath, new Date().toISOString() + ' ' + text + '\n');
+      }
     },
     watchStop(stop) {
       timer = setInterval(() => {

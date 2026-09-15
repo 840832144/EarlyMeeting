@@ -1,0 +1,12 @@
+**/node_modules/
+**/.local/
+**/.env
+**/.env.*
+!**/.env.example
+**/*.log
+/config/
+/data/
+/transfer/
+*.tar
+*.tar.gz
+*.zip

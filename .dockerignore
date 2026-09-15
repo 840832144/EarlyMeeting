@@ -1,0 +1,12 @@
+# Allowlist: no credentials, state, personal data, Git or logs enter the context.
+**
+!tools/
+!tools/callback-test/
+!tools/callback-test/package.json
+!tools/callback-test/package-lock.json
+!tools/callback-test/*.cjs
+tools/callback-test/*.test.cjs
+!deploy/
+!deploy/linux/
+!deploy/linux/Dockerfile
+!deploy/linux/entrypoint.sh
