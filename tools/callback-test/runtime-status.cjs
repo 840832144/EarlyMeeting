@@ -1,11 +1,15 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const {beijing,scheduleDue}=require('./meeting-schedule.cjs');
-function snapshot(schedule,connection,stopped=false) {
+function snapshot(schedule,connection,stopped=false,persisted={}) {
   const today=beijing();
   const groups=schedule.groups.map((g,i)=>{
     const slot=schedule.active.get(g.chat_id);
-    if(!slot)return {group:i+1,status:scheduleDue(g,today,schedule.schedule.minute)?'starting':'waiting',queued:0,pending:'none'};
+    if(!slot){
+      const saved=persisted.date===today.date?persisted.groups?.find(item=>item.group===i+1):null;
+      return {group:i+1,status:saved?.attention?'attention':saved?.state==='sent'||scheduleDue(g,today,schedule.schedule.minute)?'starting':'waiting',
+        rows:saved?.rows||0,queued:saved?.queued||0,pending:saved?.pending||'none'};
+    }
     const s=slot.service.store?.get();
     const pending=s?.pending?.recovery?.status||(s?.pending?'unknown':'none');
     const attention=slot.service.fault||['unknown','rejected'].includes(pending)||!!s?.layoutPending||!!s?.summaryPending;

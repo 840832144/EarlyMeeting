@@ -47,7 +47,7 @@ async function main({env=process.env,base=__dirname,LarkOverride}={}) {
     domain:Lark.Domain.Feishu,logger,loggerLevel:Lark.LoggerLevel.debug,autoReconnect:true,
     agent,httpInstance:diagnosticHttp(Lark.defaultHttpInstance,output,state)});
   let stopping=false,heartbeat;
-  const report=()=>writeStatus(dataDir,snapshot(schedule,state,stopping));
+  const report=()=>writeStatus(dataDir,snapshot(schedule,state,stopping,inspectStates(runtime)));
   async function stop(code){
     if(stopping)return;stopping=true;state.stopping=true;clearInterval(heartbeat);
     try{

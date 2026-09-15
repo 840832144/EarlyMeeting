@@ -65,6 +65,8 @@ test('health distinguishes a running process, connection, and a blocked group; c
   const state=f.store.get();state.pending={kind:'add',row:{id:'r123456abcdef',owner:'ou_fixture',section:'planning',content:'',revision:0},
     sequence:1,uuid:randomUUID(),event:'a'.repeat(64),recovery:{status:'unknown',attempts:1}};f.store.put(state);
   s=snapshot(schedule,{connected:true});assert.equal(s.groups[0].status,'attention');assert.equal(s.ready,false);
+  schedule.active.clear();s=snapshot(schedule,{connected:false},false,inspectStates(f.runtime));
+  assert.equal(s.groups[0].pending,'unknown');assert.equal(s.groups[0].status,'attention');assert.equal(s.ready,false);
   fs.writeFileSync(path.join(f.dir,'meeting-state.json.next'),'unfinished');
   assert.equal(inspectStates(f.runtime).groups[0].partial,true);
 });
