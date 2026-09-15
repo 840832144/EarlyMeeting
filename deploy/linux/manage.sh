@@ -7,6 +7,9 @@ action=${1:-status}
 if [[ $# -gt 1 || ! "$action" =~ ^(start|stop|restart|status|logs|check)$ ]]; then
   echo '用法：deploy/linux/manage.sh start|stop|restart|status|logs|check'; exit 1
 fi
+if [[ -f "$root/.runtime-mode" && "$(cat "$root/.runtime-mode")" = systemd ]]; then
+  exec bash "$root/deploy/linux/manage-systemd.sh" "$action"
+fi
 command -v docker >/dev/null || { echo '[DOCKER_UNAVAILABLE] 请技术先提供 Docker/Compose。'; exit 1; }
 docker compose version >/dev/null
 data=${EARLYMEETING_DATA_HOST_DIR:-}

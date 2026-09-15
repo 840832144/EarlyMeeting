@@ -10,6 +10,11 @@ $names = @('EARLYMEETING_APP_ID','EARLYMEETING_APP_SECRET','EARLYMEETING_TEST_CH
 $old = @{}
 foreach ($name in $names) { $old[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 try {
+    if (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.local\meeting\cloud-active.json')) {
+        Write-Host '[CLOUD_ACTIVE] 已迁移云端，请使用服务器启停入口。'
+        Write-Host '需要回退时，先停止云端并迁回最新当天状态，再由维护者解除本机锁定。'
+        throw 'PRECHECK_STOP'
+    }
     if ($Mode -eq 'Meeting') { Write-Host 'EarlyMeeting 晨会（本人行保存/删除，多群工作日定时）' }
     else { Write-Host 'EarlyMeeting 本机回调测试（不保存、不更新、不定时发送）' }
     Write-Host '请关闭本应用的其他回调测试进程，只运行一份。'

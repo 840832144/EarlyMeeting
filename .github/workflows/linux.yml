@@ -20,6 +20,6 @@ jobs:
           -v "$PWD/tools/callback-test:/tests:ro" earlymeeting:ci
           --test /tests/runtime.test.cjs /tests/meeting-retention.test.cjs /tests/meeting-recovery.test.cjs /tests/operations.test.cjs
       - name: Shell entrypoint syntax
-        run: bash -n deploy/linux/manage.sh start.sh stop.sh restart.sh status.sh logs.sh
+        run: bash -n deploy/linux/manage.sh deploy/linux/manage-systemd.sh deploy/linux/install-systemd.sh start.sh stop.sh restart.sh status.sh logs.sh
       - name: Offline real entrypoint, Compose recreation, lock and SIGTERM
         run: bash deploy/linux/smoke.sh
