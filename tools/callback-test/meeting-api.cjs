@@ -2,8 +2,8 @@
 function createApi(config,Lark,transport=Lark.defaultHttpInstance) {
   const silent=Object.fromEntries(['trace','debug','info','warn','error'].map(k=>[k,()=>{}]));
   // The SDK token manager uses post(), while resource APIs use request().
-  const http={request:r=>transport.request({...r,timeout:8000}),
-    post:(url,data)=>transport.request({method:'POST',url,data,timeout:8000})};
+  const http={request:r=>transport.request({...r,timeout:20000}),
+    post:(url,data)=>transport.request({method:'POST',url,data,timeout:20000})};
   const client=new Lark.Client({appId:config.appId,appSecret:config.appSecret,
     domain:Lark.Domain.Feishu,logger:silent,httpInstance:http});
   const call=async promise=>{

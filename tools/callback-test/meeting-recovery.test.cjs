@@ -154,3 +154,53 @@ test('not-ready schedule slot resumes a busy update before layout migration',asy
   assert.equal(f.store.get().rows[0].content,'fixture 1');
   assert.equal(f.store.get().pending,null);assert.equal(f.store.get().layoutVersion,14);
 });
+
+test('transport timeout retries the same add intent and then drains queued saves',async t=>{
+  const f=fixture(t,{retryDelays:[20]});let attempts=0;
+  f.api.updateRow=async(_card,p)=>{
+    f.calls.push(clone(p));
+    if(++attempts===1)throw Object.assign(new Error('private response omitted'),{code:'ECONNABORTED'});
+    return {code:0};
+  };
+  const add=f.payload(1);add.event.operator.open_id='ou_fixture4';
+  add.event.action={tag:'button',value:{op:'add',section:'engineering'}};
+  f.service.handle(add);await f.service.queue;
+  assert.equal(f.store.get().pending.recovery.status,'retrying');
+  assert.match(f.service.handle(f.payload(2)).toast.content,/已排队/);
+  await until(()=>f.store.get().requests.length===0);
+  assert.equal(f.store.get().rows.length,4);
+  assert.equal(f.store.get().rows[1].content,'fixture 2');
+  assert.equal(f.calls[0].uuid,f.calls[1].uuid);
+  assert.equal(f.calls[0].sequence,f.calls[1].sequence);
+  assert.deepEqual(f.calls[0].row,f.calls[1].row);
+});
+
+test('transport retries are bounded and UUID conflicts never acknowledge success',async t=>{
+  for(const lastReply of ['timeout',200770,300317]) {
+    const f=fixture(t);let calls=0;
+    f.api.updateRow=async()=>{
+      calls++;
+      if(calls===1||lastReply==='timeout')throw Object.assign(new Error('not logged'),{code:'ECONNRESET'});
+      return {code:lastReply};
+    };
+    f.service.handle(f.payload(1));f.service.handle(f.payload(2));
+    await until(()=>calls>1&&!f.service.processing&&f.store.get().pending?.recovery.status==='unknown');
+    await sleep(40);
+    assert.equal(calls,lastReply==='timeout'?3:2);
+    assert.equal(f.store.get().sequence,0);assert.equal(f.store.get().requests.length,2);
+    assert.equal(f.store.get().rows[0].content,'');
+  }
+});
+
+test('persisted transport retry survives restart without resetting its budget',async t=>{
+  const first=fixture(t,{retryDelays:[60000]});
+  first.api.updateRow=async()=>{throw Object.assign(new Error('not logged'),{code:'ETIMEDOUT'});};
+  first.service.handle(first.payload(1));await first.service.queue;await first.service.stop();
+  const intent=first.store.get().pending;
+  const second=fixture(t,{store:first.store});
+  assert.equal(await second.service.prepare(),true);
+  assert.equal(second.store.get().pending,null);
+  assert.equal(second.calls[0].uuid,intent.uuid);
+  assert.equal(second.calls[0].recovery.transportFailures,1);
+  assert.equal(second.store.get().rows[0].content,'fixture 1');
+});

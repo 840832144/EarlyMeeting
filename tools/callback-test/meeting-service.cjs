@@ -7,6 +7,8 @@ const {diagnosis}=require('./probe.cjs');
 const toast=(content,type='info')=>({toast:{type,content}});
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const isDelivery=kind=>['save_delivery','clear_delivery','edit_delivery'].includes(kind);
+const TRANSIENT_TRANSPORT=new Set(['ECONNABORTED','ETIMEDOUT','ECONNRESET','EPIPE',
+  'EAI_AGAIN','ENOTFOUND','ENETUNREACH','EHOSTUNREACH','ECONNREFUSED']);
 
 class MeetingService {
   constructor(config,store,api,output,{delay=250,now=Date.now,retryDelays=[1000,2000,5000,15000,60000],ai=config.deliveryAiEnabled===true?config.deliveryAi||null:null}={}) {
@@ -56,8 +58,8 @@ class MeetingService {
       s.messageId=reply.data.message_id;s.stage='sent';this.store.put(s);this.record('MEETING_SENT',`same_message=true; rows=${s.rows.length}`);
     }else this.record('MEETING_RESUMED',`same_message=true; rows=${s.rows.length}`);
     if(s.pending) {
-      // Starting maintenance must not replay today's uncertain write. Only a
-      // definite temporary refusal is eligible for automatic recovery.
+      // Resume only a previously persisted, bounded retry decision. Bare
+      // unknown results and UUID/sequence conflicts still need reconciliation.
       if(s.pending.recovery?.status==='retrying')await this.flush();
       else this.record('UPDATE_HELD','当天待确认或被拒绝的提交已保留，未自动重放。');
     }
@@ -183,7 +185,7 @@ class MeetingService {
     const requests=s.requests||[];
     if(requests.some(r=>r.event===request.event||requestTarget(r)===requestTarget(request)))
       return toast(s.pending?.recovery?.status==='retrying'
-        ?'飞书暂时忙，已保留提交并自动重试；本行刷新后才表示保存完成。'
+        ?'飞书响应暂时异常，已保留操作并自动重试；本行刷新后才表示完成。'
         :'这一行已有操作排队或正在保存，请等本行刷新后再操作。','warning');
     if(request.kind==='add' && s.rows.some(r=>r.owner===request.owner)) {
       const existing=s.rows.find(r=>r.owner===request.owner);
@@ -349,9 +351,10 @@ class MeetingService {
     let s=this.store.get();const p=s.pending;
     if(!p)return true;
     const attempts=(p.recovery?.attempts||0)+1;
+    const transportFailures=p.recovery?.transportFailures||0;
     // Persist 'unknown' before each network attempt: a process crash or timeout
     // must never inherit the previous known-rejection retry permission.
-    s.pending.recovery={status:'unknown',attempts};this.store.put(s);
+    s.pending.recovery={status:'unknown',attempts,...(transportFailures?{transportFailures}:{})};this.store.put(s);
     const nextRows=isDelivery(p.kind)?s.rows:p.kind==='add'?[...s.rows,p.row]:p.kind==='delete'
       ?s.rows.filter(row=>row.id!==p.row.id):s.rows.map(row=>row.id===p.row.id?p.row:row);
     let reply;
@@ -359,7 +362,24 @@ class MeetingService {
       p.kind==='delivery_result'?await this.api.updateSummary(s.cardId,p,deliveryElement(nextRows)):
       this.autoDelivery&&['save','delete'].includes(p.kind)?await this.api.updateRowAndSummary(s.cardId,p,rowElement(p.row),deliveryElement(nextRows)):
         await this.api.updateRow(s.cardId,p,rowElement(p.row));}
-    catch(e){this.record('UPDATE_UNCONFIRMED',diagnosis(e,'CALLBACK'));return false;}
+    catch(e){
+      s=this.store.get();
+      if(s.pending?.uuid!==p.uuid||s.pending.sequence!==p.sequence)throw new Error('PENDING_CHANGED');
+      const transportCode=e?.code||e?.cause?.code;
+      if(TRANSIENT_TRANSPORT.has(transportCode)) {
+        const failures=transportFailures+1;
+        // Reuse the exact persisted UUID/sequence/row/payload. UUID conflicts
+        // are NOT success. At most two retries, then retain unknown for review.
+        const retrying=failures<3;
+        s.pending.recovery={status:retrying?'retrying':'unknown',attempts,
+          transportFailures:failures,transportCode};
+        if(retrying)s.pending.recovery.nextAt=this.now()+this.retryDelays[Math.min(failures-1,this.retryDelays.length-1)];
+        this.store.put(s);
+        this.record(retrying?'UPDATE_TRANSPORT_RETRY_SCHEDULED':'UPDATE_UNCONFIRMED',
+          `code=${transportCode}; attempts=${attempts}${retrying?`; delay_ms=${s.pending.recovery.nextAt-this.now()}`:''}`);
+      }else this.record('UPDATE_UNCONFIRMED',diagnosis(e,'CALLBACK'));
+      return false;
+    }
     if(reply?.code!==0) {
       // UUID conflict is NOT proof of a successful update. Keep the exact intent
       // and fail closed rather than incrementing sequence or creating duplicates.
@@ -369,6 +389,7 @@ class MeetingService {
       const retrying=code===200810;
       const unknown=code===null||[200770,300317].includes(code);
       const recovery={status:retrying?'retrying':unknown?'unknown':'rejected',attempts};
+      if(transportFailures)recovery.transportFailures=transportFailures;
       if(code!==null)recovery.code=code;
       if(retrying)recovery.nextAt=this.now()+this.retryDelays[Math.min(attempts-1,this.retryDelays.length-1)];
       s.pending.recovery=recovery;this.store.put(s);

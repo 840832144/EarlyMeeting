@@ -69,10 +69,15 @@ function validate(state,fingerprint) {
     state.pending.sequence!==state.sequence+1 || !/^[a-f0-9-]{36}$/.test(state.pending.uuid||'') ||
     !/^[a-f0-9]{64}$/.test(state.pending.event||'')))throw new Error('LOCAL_STATE_INVALID');
   const recovery=state.pending?.recovery;
+  const transportRetry=recovery?.code===undefined&&
+    ['ECONNABORTED','ETIMEDOUT','ECONNRESET','EPIPE','EAI_AGAIN','ENOTFOUND','ENETUNREACH','EHOSTUNREACH','ECONNREFUSED'].includes(recovery?.transportCode)&&
+    Number.isSafeInteger(recovery?.transportFailures)&&recovery.transportFailures>=1&&recovery.transportFailures<3;
   if(recovery!==undefined&&(!recovery||!['retrying','rejected','unknown'].includes(recovery.status)||
     !Number.isSafeInteger(recovery.attempts)||recovery.attempts<1||
     (recovery.code!==undefined&&(!Number.isSafeInteger(recovery.code)||recovery.code===0))||
-    (recovery.status==='retrying'&&(recovery.code!==200810||!Number.isFinite(recovery.nextAt)||recovery.nextAt<0))||
+    (recovery.transportFailures!==undefined&&(!Number.isSafeInteger(recovery.transportFailures)||recovery.transportFailures<1||recovery.transportFailures>3))||
+    (recovery.transportCode!==undefined&&!['ECONNABORTED','ETIMEDOUT','ECONNRESET','EPIPE','EAI_AGAIN','ENOTFOUND','ENETUNREACH','EHOSTUNREACH','ECONNREFUSED'].includes(recovery.transportCode))||
+    (recovery.status==='retrying'&&((recovery.code!==200810&&!transportRetry)||!Number.isFinite(recovery.nextAt)||recovery.nextAt<0))||
     (recovery.status==='rejected'&&!Number.isSafeInteger(recovery.code))))throw new Error('LOCAL_RECOVERY_INVALID');
   if(state.layoutPending && (state.layoutPending.sequence!==state.sequence+1 ||
     !/^[a-f0-9-]{36}$/.test(state.layoutPending.uuid||'') || state.pending))throw new Error('LOCAL_STATE_INVALID');
