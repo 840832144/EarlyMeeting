@@ -1,5 +1,9 @@
 # EarlyMeeting｜当前方向：Codex 接管本机卡片回调
 
+2026-09-17 超时恢复与预防补丁已部署（87ccd33）：群2新增行曾8秒超时，持久状态为unknown并挡住后续操作。User要求先恢复，正常停服后按原UUID/sequence/行ID补试并获明确成功，原卡及消息不变；随后共享API等待改为20秒，临时网络异常最多追加两次原意图重试，预算持久化，UUID/sequence冲突仍不冒认成功。最终云端START_READY、CONNECTED，两群ready（5/3行，queued=0、pending=none），归档/清理errors=0；行数为回查快照。未重发、整卡刷新或模拟员工输入。13项恢复风险检查和Linux CI 35172219918均通过。细节见[恢复证据](RECOVERY_20260917.md)。TASK-0028继续Review，Subagents: none。
+
+以下是前阶段记录。
+
 2026-09-15 正式切换完成：技术确认SSH指纹后，User明确批准“可以，现在切换”。Windows正常停止并验证STOP_VERIFIED，迁移今天两群完整状态，云端用户级systemd启动真实晨会入口。再次独立SSH回查active/running、enabled、linger=yes、CONNECTED、两群READY（8/2行，queued=0、pending=none）；原消息和卡片标识均保留，MEETING_RESUMED=2，MEETING_SENT=0、CARD_CREATED=0。本机一键入口已被cloud-active标记拦截，避免误开第二份。实际运行代码de8b267，操作入口见[公司服务器维护](LINUX_SYSTEMD.md)，证据见[Linux验证记录](LINUX_VALIDATION.md)。两群工作日北京时间09:30及群2AI保留，2026-09-16起分群归档；真实云端员工回调、明日准点发送/归档、服务器重启与回退尚未验证。TASK-0028返回Review，未标记Done。Subagents: none。下方为此前阶段记录，以本段为当前状态。
 
 2026-09-15 User最新授权（优先于下方“技术执行”及“不长期保留”历史）：Codex使用本机私有SSH配置承担公司Linux移植；已批准维护日志、一键启停，以及从2026-09-16起将每日已提交晨会记录分群归档在部署目录。保持工作日09:30、本人行权限、群隔离、群2AI及当日运行状态清理。项目Capability在原Linux运行契约内追加维护与已提交记录归档；SSH/生产切换为User授权的部署操作，需核验主机身份并确保新旧实例不同时运行。业务实现留在EarlyMeeting，沿用TASK-0028，不涉及Document Assistant或新编号。具体行为与登录阻塞见[维护说明](LINUX_OPERATIONS.md)。
