@@ -1,0 +1,6 @@
+{
+  "enabled": true,
+  "base_url": "https://api.deepseek.com",
+  "model": "",
+  "api_key": ""
+}

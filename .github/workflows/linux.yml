@@ -1,0 +1,25 @@
+name: Linux handoff
+on:
+  push:
+    branches: [codex/task-0028-local-callback]
+    paths: [tools/callback-test/**, deploy/linux/**, compose.yaml, .dockerignore, .github/workflows/linux.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build locked production image
+        run: docker build -f deploy/linux/Dockerfile -t earlymeeting:ci .
+      - name: Runtime, retention and queue checks with synthetic data
+        run: >-
+          docker run --rm --network none --entrypoint node
+          -v "$PWD/tools/callback-test:/tests:ro" earlymeeting:ci
+          --test /tests/runtime.test.cjs /tests/meeting-retention.test.cjs /tests/meeting-recovery.test.cjs /tests/operations.test.cjs
+      - name: Shell entrypoint syntax
+        run: bash -n deploy/linux/manage.sh deploy/linux/manage-systemd.sh deploy/linux/install-systemd.sh start.sh stop.sh restart.sh status.sh logs.sh
+      - name: Offline real entrypoint, Compose recreation, lock and SIGTERM
+        run: bash deploy/linux/smoke.sh

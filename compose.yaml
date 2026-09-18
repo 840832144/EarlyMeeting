@@ -1,0 +1,46 @@
+name: earlymeeting
+services:
+  meeting:
+    image: earlymeeting:${EARLYMEETING_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: deploy/linux/Dockerfile
+    container_name: earlymeeting
+    init: true
+    restart: unless-stopped
+    user: "${EARLYMEETING_UID:-1000}:${EARLYMEETING_GID:-1000}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      TZ: Asia/Shanghai
+      EARLYMEETING_CONFIG_DIR: /config
+      EARLYMEETING_DATA_DIR: /data
+      EARLYMEETING_FILE_LOG: "0"
+      EARLYMEETING_LOG_DIR: /data/logs
+    volumes:
+      - type: bind
+        source: ${EARLYMEETING_CONFIG_HOST_DIR:-/srv/earlymeeting/config}
+        target: /config
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${EARLYMEETING_DATA_HOST_DIR:-/srv/earlymeeting/data}
+        target: /data
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    stop_grace_period: 60s
+    healthcheck:
+      test: [CMD, node, meeting.cjs, --healthcheck]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    logging:
+      driver: local
+      options:
+        max-size: "2m"
+        max-file: "2"
