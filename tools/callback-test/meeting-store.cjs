@@ -11,7 +11,7 @@ const MAX_REQUESTS=24;
 function requestTarget(request) {
   if(request.kind==='delivery_result')return `delivery:${request.row}`;
   return ['save_delivery','clear_delivery','edit_delivery'].includes(request.kind)?'delivery':
-    request.kind==='add'?`add:${request.owner}`:`row:${request.row}`;
+    request.kind==='add'?`add:${request.owner}:${request.section}`:`row:${request.row}`;
 }
 function validRequest(r) {
   if(!r||!['add','save','edit','delete','save_delivery','clear_delivery','edit_delivery','delivery_result'].includes(r.kind)||
@@ -52,7 +52,6 @@ function validate(state,fingerprint) {
       !Number.isFinite(state.createdAt) || state.createdAt>Date.now() ||
       !Array.isArray(state.rows) || state.rows.length>MAX_ROWS || !state.rows.every(validRow) ||
       new Set(state.rows.map(r=>r.id)).size!==state.rows.length ||
-      new Set(state.rows.map(r=>r.owner)).size!==state.rows.length ||
       !Array.isArray(state.events) || state.events.length>256 ||
       !state.events.every(e=>/^[a-f0-9]{64}$/.test(e))) throw new Error('LOCAL_STATE_INVALID');
   if (['created','sending','sent'].includes(state.stage) && !/^[A-Za-z0-9_-]{1,100}$/.test(state.cardId||''))

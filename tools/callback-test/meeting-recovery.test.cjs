@@ -41,6 +41,32 @@ async function until(predicate) {
 }
 function afterMicrotasks(depth,fn){if(depth===0)fn();else queueMicrotask(()=>afterMicrotasks(depth-1,fn));}
 
+for(const autoDelivery of [false,true])test(`one owner may add in both sections and add again in ${autoDelivery?'AI':'manual'} group`,async t=>{
+  const f=fixture(t,{autoDelivery});
+  const add=section=>{const p=f.payload(1);p.event.action={tag:'button',value:{op:'add',section}};return p;};
+  const engineering=add('engineering'),planning=add('planning');
+  assert.match(f.service.handle(engineering).toast.content,/已排队/);
+  f.service.handle(engineering); // Same event while in flight must not append twice.
+  assert.match(f.service.handle(planning).toast.content,/已排队/);
+  await until(()=>f.store.get().requests.length===0);
+  assert.equal(f.store.get().rows.length,5);
+  f.service.handle(engineering);assert.equal(f.store.get().rows.length,5);
+  assert.match(f.service.handle(add('planning')).toast.content,/已排队/);
+  await until(()=>f.store.get().rows.length===6);
+  const row=f.store.get().rows[5],other=f.payload(6);
+  other.event.operator.open_id='ou_not_owner';
+  assert.equal(f.service.handle(other).toast.type,'warning');
+  f.service.handle(f.payload(6));await until(()=>f.store.get().rows[5].content==='fixture 6');
+  assert.equal(f.store.get().rows[0].content,'');
+  const remove=f.payload(6);remove.event.action={tag:'button',value:{op:'delete',row:row.id,revision:1}};
+  f.service.handle(remove);await until(()=>f.store.get().rows.length===5);
+  assert.equal(f.store.get().rows.filter(r=>r.owner===row.owner).length,3);
+  await f.service.stop();
+  const resumed=fixture(t,{autoDelivery,store:f.store});
+  assert.equal(await resumed.service.prepare(),true);
+  assert.equal(resumed.store.get().rows.length,5);
+});
+
 test('new callback at worker completion cannot remain stranded',async t=>{
   for(const depth of [3,4]) {
     let injected=false,ack;

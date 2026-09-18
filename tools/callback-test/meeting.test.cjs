@@ -60,7 +60,7 @@ test('empty card, two simultaneous owners, repeated plus, independent full-form 
   f.service.handle(action('ou_beta'));await f.service.queue;
   assert.equal(f.store.get().rows.length,2);
   assert.equal(f.calls.filter(c=>c.method==='add').length,2);
-  assert.match((await submit(f,action())).toast.content,/已经有一行/);
+  assert.match((await submit(f,first)).toast.content,/该次操作已处理/);
   let rows=f.store.get().rows;
   f.service.handle(save(rows[0]));f.service.handle(save(rows[1],'ou_beta','虚构程序工作','程序'));
   await f.service.queue;rows=f.store.get().rows;

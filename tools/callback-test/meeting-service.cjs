@@ -187,12 +187,8 @@ class MeetingService {
       return toast(s.pending?.recovery?.status==='retrying'
         ?'飞书响应暂时异常，已保留操作并自动重试；本行刷新后才表示完成。'
         :'这一行已有操作排队或正在保存，请等本行刷新后再操作。','warning');
-    if(request.kind==='add' && s.rows.some(r=>r.owner===request.owner)) {
-      const existing=s.rows.find(r=>r.owner===request.owner);
-      this.record('ROW_EXISTS',`rows=${s.rows.length}`);return toast(`你已经在${SECTIONS[existing.section]}区有一行了。选错区域可先删除本行，再重新添加。`);
-    }
     if(request.kind==='add' && s.rows.length+requests.filter(r=>r.kind==='add').length>=MAX_ROWS)
-      return toast('本轮卡片已满 20 人，请联系维护者。','warning');
+      return toast('本轮卡片已满 20 行，请联系维护者。','warning');
     if(requests.length>=MAX_REQUESTS)return toast('当前排队已满，请稍后重新提交。','warning');
     if(!this.queueFits(s,[...requests,request]))
       return toast('本张卡片已接近容量上限，请精简内容后重新提交。','warning');
@@ -332,7 +328,6 @@ class MeetingService {
         return this.finishRequest(request,'STALE_AI_RESULT_IGNORED');
       row={...previous,deliveryResult:request.result};
     }else if(request.kind==='add') {
-      if(s.rows.some(r=>r.owner===request.owner))return this.finishRequest(request,'ROW_EXISTS');
       if(s.rows.length>=MAX_ROWS)return this.finishRequest(request,'ROW_LIMIT');
       row={id:'r'+randomBytes(6).toString('hex'),owner:request.owner,section:request.section,content:'',revision:0};
     }else{
