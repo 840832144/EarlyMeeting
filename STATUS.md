@@ -1,5 +1,9 @@
 # EarlyMeeting｜当前状态
 
+2026-09-21 发卡日志与日期校验已部署，运行代码 `d5f864f`，沿用 TASK-0028 / PR #4 / Review。云端历史记录已确认9月21日09:30两群正常发送后，系统日期跳到12月21日17:00再次发送；NTP未启用，改时来源未知。本次添加独立持久发送登记及时间检查点，异常阻止新发卡并暂停按日期清理。真实部署后长连接及两群ready，原1/0行、queued=0/pending=none，MEETING_RESUMED=2、MEETING_SENT=0、CARD_CREATED=0；`sendingBlocked=CLOCK_HISTORY_MISMATCH`，登记10条历史发送。服务器时钟尚未校准，暂停标记未解除，不能承诺下一次定时发送。33项局部检查及[Linux CI 35584684659](https://github.com/840832144/EarlyMeeting/actions/runs/35584684659)通过；无生产测试消息或员工模拟回调。维护步骤见[发送校验](docs/SEND_GUARD.md)。Subagents: none。
+
+以下为历史阶段记录。
+
 2026-09-18 已取消每人每卡只能一行的限制（c7bdf66）：同一人可在策划、程序分别新增，也可在同一区域继续新增；入队检查、执行检查及持久状态校验同步调整。不同区域新增可独立排队，同一区域新增处理中仍防连点，同一回调防重、本人操作、行ID唯一、行版本及单卡容量保护保留。两个群共用代码已部署，STOP_VERIFIED后START_READY，原5/4行保留、均ready且queued=0/pending=none，未重发或整卡刷新。原截图中“提示有行但不可见”的客户端原因没有独立复现，不冒称定位；本次按User要求取消阻挡新增的规则。[Linux CI 35297410731](https://github.com/840832144/EarlyMeeting/actions/runs/35297410731)通过。局部验证先复现旧限制，再通过15项队列/恢复检查，覆盖两种群模式下跨区域/同区域多行、重复回调、本人权限、独立删除和重启恢复；正式群未模拟员工操作，多行实际填写待正常使用反馈。多行数据生成后不能直接回退到仍要求owner唯一的旧源码。Task继续Review；Subagents: none。
 
 以下为历史阶段记录。
