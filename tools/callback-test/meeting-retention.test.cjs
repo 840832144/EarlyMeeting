@@ -62,6 +62,7 @@ test('rollover stops old workers before cleanup, even when offline; never sends 
     groups:[],active:new Map([['fixture',{service:{stop:async()=>{
       assert.ok(fs.existsSync(old));await Promise.resolve();fs.writeFileSync(old,'last old write');stopped=true;
     }}}]]),connected:()=>false,output:()=>{},stopped:false,work:null});
+  schedule.sendJournal=require('./send-journal.cjs').createSendJournal(f.root,{},[],()=>{});
   await schedule.tick();
   assert.equal(stopped,true);assert.equal(fs.existsSync(old),false);assert.ok(fs.existsSync(current));
   assert.equal(schedule.day,date);assert.equal(schedule.cleanedDay,date);assert.equal(schedule.active.size,0);

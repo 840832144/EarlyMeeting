@@ -9,6 +9,10 @@ function logEntry(line) {
   const group=labels.find(s=>/^GROUP_\d{1,2}$/.test(s));
   const entry={at:beijingTime(),pid:process.pid,event:labels.find(s=>!/^GROUP_/.test(s))||'STATUS'};
   if(group)entry.group=Number(group.slice(6));
+  if(entry.event==='SEND_GUARD_BLOCKED') {
+    const reason=String(line).match(/\breason=([A-Z_]{1,50})(?![A-Z_])/);
+    if(reason)entry.reason=reason[1];
+  }
   for(const key of ['rows','waiting','fields','tasks','files','days','errors','attempts','delay_ms']) {
     const match=String(line).match(new RegExp('\\b'+key+'=(\\d{1,10})(?!\\d)'));
     if(match)entry[key]=Number(match[1]);

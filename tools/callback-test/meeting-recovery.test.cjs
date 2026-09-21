@@ -175,6 +175,7 @@ test('not-ready schedule slot resumes a busy update before layout migration',asy
   const scheduler=Object.assign(Object.create(MeetingSchedule.prototype),{day:beijing().date,
     active:new Map([['oc_fixture',slot]]),groups:[{chat_id:'oc_fixture'}],output:()=>{},connected:()=>true,
     cleanedDay:beijing().date,cleanupRetryAt:0});
+  scheduler.sendJournal={check:()=>true}; // This fixture isolates an existing update queue; no send path.
   blocked=false;await sleep(15);await scheduler.run();
   assert.equal(slot.ready,true);assert.equal(scheduler.active.size,1);
   assert.equal(f.store.get().rows[0].content,'fixture 1');

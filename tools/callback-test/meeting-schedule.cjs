@@ -6,6 +6,7 @@ const {MeetingService}=require('./meeting-service.cjs');
 const {MAX_ROWS,SECTIONS}=require('./meeting-card.cjs');
 const {cleanupHistory}=require('./meeting-retention.cjs');
 const {createArchive}=require('./meeting-archive.cjs');
+const {createSendJournal}=require('./send-journal.cjs');
 
 // Fixed UTC+8, independent of the Windows clock's display timezone.
 function beijing(now=Date.now()) {
@@ -77,6 +78,7 @@ class MeetingSchedule {
   constructor(directory,config,apiFactory,output,connected,{settings,operations}={}) {
     Object.assign(this,{directory,config,apiFactory,output,connected});
     this.schedule=settings||readSettings(directory,config);this.groups=this.schedule.groups;
+    this.sendJournal=createSendJournal(directory,config,this.groups,output);
     migrateLegacy(directory,config,output);
     this.active=new Map();this.day=null;this.stopped=false;this.work=null;
     this.cleanedDay=null;this.cleanupRetryAt=0;
@@ -96,11 +98,14 @@ class MeetingSchedule {
   }
   async run() {
     const today=beijing();
+    const sendAllowed=this.sendJournal.check();
+    // A clock jump must not discard active workers or delete the real day's data.
+    if(!sendAllowed&&this.day&&this.day!==today.date)return;
     if(this.day!==today.date) {
       for(const slot of this.active.values())await slot.service.stop();
       this.active.clear();this.day=today.date;
     }
-    if(this.cleanedDay!==today.date&&Date.now()>=this.cleanupRetryAt) {
+    if(sendAllowed&&this.cleanedDay!==today.date&&Date.now()>=this.cleanupRetryAt) {
       try {
         const result=cleanupHistory(this.directory,today.date,{beforeRemoveDay:this.archive?.beforeRemoveDay});
         this.retentionErrors=result.errors;
@@ -110,7 +115,7 @@ class MeetingSchedule {
       this.cleanupRetryAt=Date.now()+60000;
     }
     // Read only committed state. No callback payload, draft, or pending body is archived.
-    this.archive?.snapshot(today.date);
+    if(sendAllowed)this.archive?.snapshot(today.date);
     // Retention runs offline as well. Sending/resuming cards still requires the
     // live connection, and old workers are stopped before their files are removed.
     if(!this.connected()||this.stopped)return;
@@ -138,15 +143,27 @@ class MeetingSchedule {
       const exists=fs.existsSync(path.join(dir,'meeting-state.json'));
       const due=scheduleDue(g,today,this.schedule.minute);
       if(!exists&&!due)continue;
+      if(!exists&&!sendAllowed)continue;
       const output=line=>this.output(`[GROUP_${i+1}] ${line}`);
       let slot;
       try {
         fs.mkdirSync(dir,{recursive:true});
-        const service=new MeetingService(config,createStore(dir,config),this.apiFactory(config),output);
+        const store=createStore(dir,config),state=store.get(),key=binding(config);
+        if(fs.existsSync(path.join(dir,'meeting-state.json.next')))throw new Error('PARTIAL_DAY_STATE');
+        const permitted=state.stage==='sent'?this.sendJournal.resume(key,today.date,state):
+          this.sendJournal.reserve(key,today.date,state);
+        if(!permitted){output('[SEND_GUARD_BLOCKED] 本群发送日志与状态待核对，未发新卡。');continue;}
+        const api=this.apiFactory(config),guardedApi={...api};
+        for(const method of ['createCard','sendCard'])guardedApi[method]=(...args)=>{
+          if(!this.sendJournal.check()||beijing().date!==today.date)throw new Error('SEND_DATE_CHANGED');
+          return api[method](...args);
+        };
+        const service=new MeetingService(config,store,guardedApi,output);
         // Keep one slot even after an uncertain request: a timer tick must not
         // create another card. Restart resumes this same persisted journal.
         slot={service,ready:false};this.active.set(g.chat_id,slot);
         slot.ready=await service.prepare();
+        if(store.get().stage==='sent')this.sendJournal.confirm(key,today.date,store.get());
         output(slot.ready?'[MEETING_READY] 本群当天卡片可填写。':'[MEETING_NOT_READY] 请检查状态后重启，保留本机数据。');
       }catch {
         // A bad group/state must not prevent other configured groups from working.
@@ -157,7 +174,7 @@ class MeetingSchedule {
   }
   handle(payload) {
     const event=payload?.event||payload,slot=this.active.get(event?.context?.open_chat_id);
-    if(this.stopped||!this.connected()||this.day!==beijing().date||!slot?.ready)
+    if(this.stopped||!this.connected()||(!this.sendJournal.status()&&this.day!==beijing().date)||!slot?.ready)
       return {toast:{type:'warning',content:'请使用本群今天的晨会卡片；程序需保持运行。'}};
     return slot.service.handle(payload);
   }
@@ -165,7 +182,7 @@ class MeetingSchedule {
     this.stopped=true;clearInterval(this.timer);
     if(this.work)await this.work;
     for(const slot of this.active.values())await slot.service.stop();
-    if(this.day)this.archive?.snapshot(this.day);
+    if(this.day&&this.sendJournal.check())this.archive?.snapshot(this.day);
   }
 }
 module.exports={MeetingSchedule,beijing,readGroups,readSettings,scheduleDue};
