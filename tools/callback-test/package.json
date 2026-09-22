@@ -1,0 +1,22 @@
+{
+  "name": "earlymeeting-local-callback-probe",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Owner-controlled meeting rows and weekday per-group daily cards",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test:recovery": "node --test meeting-recovery.test.cjs",
+    "test": "node probe.cjs --self-test && node --test probe.test.cjs send.test.cjs meeting.test.cjs",
+    "start": "node meeting.cjs",
+    "start:probe": "node probe.cjs",
+    "check": "node meeting.cjs --check",
+    "status": "node meeting.cjs --status",
+    "test:retention": "node --test meeting-retention.test.cjs",
+    "test:runtime": "node --test runtime.test.cjs"
+  },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "1.73.3"
+  }
+}

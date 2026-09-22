@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "timezone": "Asia/Shanghai",
+  "time": "09:30",
+  "weekdays": [1, 2, 3, 4, 5],
+  "groups": [
+    {
+      "name": "测试群",
+      "chat_id": "",
+      "enabled": false,
+      "schedule": false,
+      "start_date": "2026-09-08"
+    },
+    {
+      "name": "正式群1",
+      "chat_id": "",
+      "enabled": false,
+      "schedule": false,
+      "start_date": "2026-09-08"
+    },
+    {
+      "name": "正式群2",
+      "delivery_ai": false,
+      "chat_id": "",
+      "enabled": false,
+      "schedule": false,
+      "start_date": "2026-09-08",
+      "row_permissions": {"submit": "owner", "delete": "owner"},
+      "prefill": {"enabled": false, "planning": [], "engineering": []}
+    }
+  ]
+}
