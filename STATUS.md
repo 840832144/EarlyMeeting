@@ -1,5 +1,7 @@
 # EarlyMeeting｜当前状态
 
+2026-09-22：两个正式群今天已各补发一张，云端长连接及两群ready，消息/状态已确认sent，可正常填写。User明确补发即直接执行，后台保留防重，不重复请示。服务器仍慢约2小时21分且账号无sudo校时权限；本次仅单进程采用核实过的北京时间补发、保留异常登记并恢复接收，未改系统时间。自动发送保护仍为`CLOCK_MISMATCH`，需技术校时及日志核对后解除。详见[当前交接](handoff/CODEX.md)。Subagents: none。
+
 2026-09-21 发卡日志与日期校验已部署，运行代码 `d5f864f`，沿用 TASK-0028 / PR #4 / Review。云端历史记录已确认9月21日09:30两群正常发送后，系统日期跳到12月21日17:00再次发送；NTP未启用，改时来源未知。本次添加独立持久发送登记及时间检查点，异常阻止新发卡并暂停按日期清理。真实部署后长连接及两群ready，原1/0行、queued=0/pending=none，MEETING_RESUMED=2、MEETING_SENT=0、CARD_CREATED=0；`sendingBlocked=CLOCK_HISTORY_MISMATCH`，登记10条历史发送。服务器时钟尚未校准，暂停标记未解除，不能承诺下一次定时发送。33项局部检查及[Linux CI 35584684659](https://github.com/840832144/EarlyMeeting/actions/runs/35584684659)通过；无生产测试消息或员工模拟回调。维护步骤见[发送校验](docs/SEND_GUARD.md)。Subagents: none。
 
 以下为历史阶段记录。
